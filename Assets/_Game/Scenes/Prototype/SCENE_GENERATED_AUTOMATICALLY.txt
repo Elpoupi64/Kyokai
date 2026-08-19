@@ -1,0 +1,1 @@
+Foundry_Prototype.unity sera créé automatiquement par Assets/_Game/Editor/FoundryPrototypeSceneBuilder.cs après compilation des scripts.
