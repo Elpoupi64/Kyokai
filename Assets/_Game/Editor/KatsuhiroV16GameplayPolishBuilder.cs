@@ -75,8 +75,7 @@ public static class KatsuhiroV16GameplayPolishBuilder
     {
         Doryoku3Enemy[] enemies =
             Object.FindObjectsByType<Doryoku3Enemy>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None
+                FindObjectsInactive.Include
             );
 
         for (int i = 0; i < enemies.Length; i++)
