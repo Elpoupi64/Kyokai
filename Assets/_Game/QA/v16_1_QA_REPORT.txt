@@ -1,6 +1,6 @@
 KATSUHIRO v16.1 RC2 — QA HOTFIX + BUILD VALIDATION
 ==================================================
-Version : Prototype v17 — Final Demo Polish / External Playtest
+Version : Prototype v17.1 — Level Pacing 8–10 Minutes
 Unity : 6000.5.9f1
 Build target : StandaloneWindows64
 
