@@ -802,6 +802,15 @@ public class DemoPlaytestTelemetry : MonoBehaviour
 
         AppendSection(
             builder,
+            "Reprise depuis checkpoint",
+            "CHECKPOINT",
+            "CHASE_START",
+            5f,
+            20f
+        );
+
+        AppendSection(
+            builder,
             "Poursuite",
             "CHASE_START",
             "CHASE_COMPLETE",

@@ -145,16 +145,16 @@ public static class KatsuhiroV17PlaytestQAValidator
 
         if (File.Exists(buildInfo) &&
             File.ReadAllText(buildInfo)
-                .Contains("v17 Playtest 1"))
+                .Contains("Version = \"v17"))
         {
             pass.Add(
-                "Version v17 Playtest 1 active."
+                "Version v17.x active."
             );
         }
         else
         {
             blocker.Add(
-                "DemoBuildInfo n'indique pas v17 Playtest 1."
+                "DemoBuildInfo n'indique pas une version v17.x."
             );
         }
 
