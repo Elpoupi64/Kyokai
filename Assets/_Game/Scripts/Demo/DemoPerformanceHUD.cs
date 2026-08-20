@@ -174,8 +174,7 @@ public class DemoPerformanceHUD : MonoBehaviour
 
         ParticleSystem[] systems =
             FindObjectsByType<ParticleSystem>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None
+                FindObjectsInactive.Exclude
             );
 
         for (int i = 0; i < systems.Length; i++)
