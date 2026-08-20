@@ -1,0 +1,41 @@
+KATSUHIRO v17.1 — LEVEL PACING QA
+=================================
+Objectif durée : 08:00–10:00
+Base v17 : PASS=128 WARNING=4 BLOCKER=0
+
+PASS
+[PASS] QA v17 sans blocker.
+[PASS] Machine room controller présent.
+[PASS] Kikai relay node présent.
+[PASS] Steam vent hazard présent.
+[PASS] Level pacing builder présent.
+[PASS] Marker : LevelPacing_v17_1
+[PASS] Marker : 04_Chain4_Possessed_v17_1
+[PASS] Marker : ChaseCourse_v17_1
+[PASS] Director : étape MachineRoom
+[PASS] Director : milestone MachineRoom
+[PASS] Telemetry : PACING PAR SECTION
+[PASS] Telemetry : LEVEL_START
+[PASS] Telemetry : KIKAI_INTRO
+[PASS] Telemetry : KIKAI_ACTIVATED
+[PASS] Telemetry : BRIDGE_COMPLETE
+[PASS] Telemetry : FIRST_COMBAT_START
+[PASS] Telemetry : FIRST_COMBAT_COMPLETE
+[PASS] Telemetry : MACHINE_ROOM_START
+[PASS] Telemetry : MACHINE_ROOM_COMPLETE
+[PASS] Telemetry : CHECKPOINT
+[PASS] Telemetry : CHASE_START
+[PASS] Telemetry : CHASE_COMPLETE
+[PASS] Telemetry : BOSS_START
+[PASS] Telemetry : BOSS_DEFEATED
+[PASS] Telemetry : DEMO_COMPLETE
+[PASS] Telemetry : 480f
+[PASS] Telemetry : 600f
+
+WARNING
+[WARNING] Aucun.
+
+BLOCKER
+[BLOCKER] Aucun.
+
+La durée réelle ne peut être validée qu'en Play Mode / build externe.

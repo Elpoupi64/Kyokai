@@ -10,7 +10,7 @@ PASS
 [PASS] Playtest guide présent.
 [PASS] Playtest survey présent.
 [PASS] Marker ExternalPlaytest_v17 présent.
-[PASS] Version v17 Playtest 1 active.
+[PASS] Version v17.x active.
 
 WARNING
 [WARNING] Aucun.
