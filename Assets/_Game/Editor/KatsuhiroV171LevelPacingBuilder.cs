@@ -1220,9 +1220,9 @@ public static class KatsuhiroV171LevelPacingBuilder
 
         if (rb != null)
         {
-            rb.isKinematic = true;
             rb.linearVelocity =
                 Vector3.zero;
+            rb.isKinematic = true;
         }
 
         Collider[] colliders =
