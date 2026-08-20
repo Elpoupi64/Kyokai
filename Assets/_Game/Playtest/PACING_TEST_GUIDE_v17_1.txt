@@ -1,0 +1,103 @@
+KATSUHIRO v17.1 — TEST DE PACING 8–10 MINUTES
+================================================
+
+OBJECTIF
+--------
+Mesurer une partie complète en Nouvelle partie, sans connaître le niveau,
+et viser une durée totale comprise entre 08:00 et 10:00.
+
+DECOUPAGE CIBLE
+---------------
+Entrée / tutoriel ............ 00:00–00:45
+Première anomalie ............ 00:45–01:45
+Pont spectral ................ 01:45–02:45
+Premier Doryoku-3 ............ 02:45–04:00
+Chaîne 4 possédée ............ 04:00–05:15
+Checkpoint ................... 05:15–05:40
+Poursuite .................... 05:40–06:40
+Approche arène ............... 06:40–07:05
+Unité 07 ..................... 07:05–09:10
+Épilogue ..................... 09:10–09:45
+
+NOUVEAU : CHAÎNE 4 POSSÉDÉE
+----------------------------
+La salle contient trois relais :
+- relais A cyan : mode ÉTHÉRIQUE ;
+- relais B cuivre : mode NORMAL ;
+- relais C cyan : mode ÉTHÉRIQUE.
+
+Le premier relais réveille un second Doryoku-3.
+La porte de sortie ne s'ouvre que lorsque :
+1. les trois relais sont synchronisés ;
+2. l'automate réveillé est détruit.
+
+Le but est d'ajouter 60–90 secondes de gameplay réel et non une attente.
+
+NOUVELLE POURSUITE
+------------------
+La course comporte trois micro-événements :
+1. conduite rompue / saut ;
+2. passage spectral nécessitant K ;
+3. valves vapeur cycliques à esquiver.
+
+F4 — PACING
+-----------
+F4 affiche :
+- temps actuel ;
+- dernier jalon ;
+- objectif total 08:00–10:00.
+
+Le rapport local contient automatiquement :
+Tutoriel
+Première anomalie
+Pont spectral
+Premier combat
+Chaîne 4 possédée
+Checkpoint / transition
+Poursuite
+Approche arène
+Unité 07
+Épilogue
+TOTAL
+
+Chaque section est marquée :
+[CIBLE]
+[RAPIDE]
+[LONG]
+
+JALONS ENREGISTRÉS
+------------------
+LEVEL_START
+KIKAI_INTRO
+KIKAI_ACTIVATED
+BRIDGE_COMPLETE
+FIRST_COMBAT_START
+FIRST_COMBAT_COMPLETE
+MACHINE_ROOM_START
+MACHINE_ROOM_COMPLETE
+CHECKPOINT
+CHASE_START
+CHASE_COMPLETE
+BOSS_APPROACH
+BOSS_START
+BOSS_DEFEATED
+DEMO_COMPLETE
+
+MÉTHODE DE CALIBRATION
+----------------------
+Faire au minimum 3 runs Nouvelle partie :
+- un run par le développeur ;
+- un run par quelqu'un qui connaît peu le niveau ;
+- idéalement un run par quelqu'un qui ne l'a jamais vu.
+
+Ne pas modifier les timings après un seul run.
+
+Si TOTAL < 08:00 :
+- regarder les sections marquées [RAPIDE] ;
+- rallonger seulement celles qui sont réellement trop courtes.
+
+Si TOTAL > 10:00 :
+- regarder [LONG] ;
+- réduire puzzle, difficulté ou durée du boss avant de toucher à la vitesse de Kenjiro.
+
+AUCUNE DONNÉE N'EST ENVOYÉE SUR INTERNET.

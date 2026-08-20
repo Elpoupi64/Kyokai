@@ -1,0 +1,35 @@
+KATSUHIRO v17.1 — STATIC QA (HORS UNITY)
+=========================================
+Scripts C# analysés : 95
+Accolades déséquilibrées : 0
+Classes dupliquées : 0
+
+Fichiers v17.1 :
+[PASS] Assets/_Game/Scripts/VerticalSlice/VerticalSliceKikaiRelayNode.cs
+[PASS] Assets/_Game/Scripts/VerticalSlice/VerticalSliceMachineRoom.cs
+[PASS] Assets/_Game/Scripts/VerticalSlice/VerticalSliceSteamVent.cs
+[PASS] Assets/_Game/Scripts/Demo/DemoPlaytestTelemetry.cs
+[PASS] Assets/_Game/Editor/KatsuhiroV171LevelPacingBuilder.cs
+[PASS] Assets/_Game/Editor/KatsuhiroV171PacingQAValidator.cs
+[PASS] Assets/_Game/Editor/KatsuhiroV171PacingBuildMenu.cs
+[PASS] Assets/_Game/Editor/KatsuhiroV171UpgradeBuilder.cs
+[PASS] Assets/_Game/Playtest/PACING_TEST_GUIDE_v17_1.txt
+[PASS] Assets/_Game/Scripts/VerticalSlice/VerticalSliceDirector.cs
+[PASS] Assets/_Game/Scripts/Enemies/Doryoku3BossEncounter.cs
+[PASS] Assets/_Game/Editor/FoundryPrototypeSceneBuilder.cs
+[PASS] contrat SliceStep.MachineRoom
+[PASS] contrat NotifyMachineRoomCompleted
+[PASS] contrat MACHINE_ROOM_COMPLETE
+[PASS] contrat RecordPacingMilestone
+[PASS] contrat PACING PAR SECTION
+[PASS] contrat 480f
+[PASS] contrat 600f
+[PASS] contrat KatsuhiroV171LevelPacingBuilder.Apply
+[PASS] contrat BOSS_START
+
+LIMITES
+-------
+- pas de compilation Unity dans cet environnement ;
+- pas de Play Mode réel ;
+- pas de mesure de durée réelle ;
+- la scène sera reconstruite par le builder v17.1 à l'import.

@@ -1,0 +1,8 @@
+Doryoku3_Possessed.prefab sera généré automatiquement par Unity
+à partir de Assets/_Game/Editor/Doryoku3PrototypeBuilder.cs.
+
+Prefab attendu :
+Assets/_Game/Prefabs/Enemies/Doryoku3/Doryoku3_Possessed.prefab
+
+Menu manuel :
+Tools > Katsuhiro > Rebuild Doryoku-3 Possessed Prefab

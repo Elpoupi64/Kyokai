@@ -33,12 +33,10 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.collab-proxy": {
-      "version": "2.13.5",
+      "version": "2.13.6",
       "depth": 0,
       "source": "registry",
-      "dependencies": {
-        "com.unity.collections": "2.6.8"
-      },
+      "dependencies": {},
       "url": "https://packages.unity.com"
     },
     "com.unity.collections": {

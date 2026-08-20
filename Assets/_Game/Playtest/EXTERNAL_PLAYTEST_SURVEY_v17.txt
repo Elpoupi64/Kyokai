@@ -1,0 +1,57 @@
+KATSUHIRO v17 — QUESTIONNAIRE PLAYTEST
+=======================================
+
+Nom / pseudo (optionnel) :
+Machine / GPU :
+Résolution :
+Preset : Performance / Balanced / Cinematic
+
+1. Avez-vous compris comment vous déplacer et sauter ?       /5
+Commentaire :
+
+2. Avez-vous compris le Kikai-Yūrei sans explication externe ? /5
+Commentaire :
+
+3. Le combat de Kenjiro vous semble-t-il réactif ?           /5
+Commentaire :
+
+4. Le combo léger est-il naturel à utiliser ?                /5
+Commentaire :
+
+5. L'esquive vous paraît-elle utile et fiable ?              /5
+Commentaire :
+
+6. Le monde éthérique reste-t-il lisible ?                   /5
+Commentaire :
+
+7. Le premier Doryoku-3 est-il compréhensible ?              /5
+Commentaire :
+
+8. La poursuite est-elle claire et agréable ?                /5
+Commentaire :
+
+9. Le mini-boss Unité 07 est-il juste ?                      /5
+Trop facile / juste / trop difficile :
+Commentaire :
+
+10. La caméra est-elle confortable ?                         /5
+Commentaire :
+
+11. Avez-vous observé des chutes de FPS ?
+Zone :
+FPS moyen F3 :
+1% low approx. :
+
+12. Avez-vous rencontré un bug bloquant ?
+Étapes pour le reproduire :
+
+13. Qu'avez-vous préféré ?
+
+14. Qu'avez-vous le moins aimé ?
+
+15. Une chose à changer avant une démo publique :
+
+Merci de joindre si possible :
+- le fichier v17_playtest_..._summary.txt ;
+- le fichier v17_playtest_....json ;
+- une capture d'écran si un bug est visuel.

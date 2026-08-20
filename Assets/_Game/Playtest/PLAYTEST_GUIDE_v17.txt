@@ -1,0 +1,94 @@
+KATSUHIRO v17 — GUIDE DE PLAYTEST EXTERNE
+===========================================
+
+VERSION
+-------
+Prototype v17 — Final Demo Polish / External Playtest
+
+BUT DU TEST
+-----------
+Jouer la vertical slice sans utiliser l'Editor Unity et vérifier si la démo
+est compréhensible, agréable, lisible et terminable par un nouveau joueur.
+
+PARCOURS ATTENDU
+----------------
+TitleScreen
+-> Nouvelle partie
+-> tutoriel déplacement
+-> activation du Kikai-Yūrei
+-> pont éthérique
+-> premier Doryoku-3
+-> checkpoint
+-> poursuite
+-> mini-boss Doryoku-3 unité 07
+-> épilogue
+-> Retour au titre
+
+CONTROLES
+---------
+A / D ou flèches : déplacement
+Espace : saut
+J : attaque légère / combo
+I : attaque lourde
+Shift : esquive
+K : monde normal <-> monde éthérique
+L : attaque spéciale Kikai-Yūrei
+Échap : pause
+F3 : performances
+F4 : statistiques locales du playtest
+
+CE QU'IL FAUT OBSERVER
+----------------------
+1. Comprenez-vous les contrôles sans aide extérieure ?
+2. Le premier usage du Kikai-Yūrei est-il évident ?
+3. Voyez-vous toujours clairement les plateformes et Kenjiro ?
+4. Les attaques de Doryoku-3 sont-elles lisibles avant de toucher ?
+5. Le mini-boss est-il juste, trop facile ou trop difficile ?
+6. Le combat répond-il immédiatement ?
+7. La caméra vous gêne-t-elle ?
+8. Les VFX masquent-ils des dangers ?
+9. Y a-t-il des baisses de FPS perceptibles ?
+10. La fin de la démo est-elle claire ?
+
+PERFORMANCES
+------------
+Appuyez sur F3 au moins :
+- au début ;
+- dans le monde éthérique ;
+- pendant la poursuite ;
+- pendant le mini-boss.
+
+Noter :
+- FPS moyen ;
+- 1% low approximatif ;
+- preset qualité.
+
+RAPPORT LOCAL
+-------------
+F4 affiche les statistiques de la session.
+
+Le jeu écrit localement :
+- durée de session ;
+- morts ;
+- respawns ;
+- checkpoints ;
+- tentatives du boss ;
+- victoire contre le boss ;
+- activations Kikai ;
+- fin de démo.
+
+AUCUNE DONNÉE N'EST ENVOYÉE SUR INTERNET.
+
+Les fichiers sont enregistrés dans :
+Application.persistentDataPath/Katsuhiro_Playtest/
+
+À la fin du test, utiliser F4 puis "Copier le chemin du rapport".
+
+CONTEXTE NARRATIF
+-----------------
+Kenjiro Tanaka est un jeune ingénieur-détective qui enquête à la Fonderie
+Katsuhiro sur des automates Doryoku-3 dont les dysfonctionnements semblent
+liés au monde spirituel. Son Kikai-Yūrei lui permet de percevoir les
+perturbations éthériques invisibles.
+
+Merci de tester la démo comme si vous ne connaissiez pas le projet.

@@ -1,1 +1,2 @@
-Foundry_Prototype.unity sera créé automatiquement par Assets/_Game/Editor/FoundryPrototypeSceneBuilder.cs après compilation des scripts.
+Foundry_Prototype.unity est reconstruit automatiquement si Kenjiro_Prototype.prefab n'existe pas.
+Menu manuel : Tools > Katsuhiro > Create or Rebuild Foundry Prototype

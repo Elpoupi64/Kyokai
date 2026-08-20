@@ -1,0 +1,23 @@
+KATSUHIRO v16 — QA VALIDATION
+================================
+Version : Prototype v16 RC1 — Demo Candidate
+
+PASS
+[OK] Title scene présent.
+[OK] Gameplay scene présent.
+[OK] Kenjiro prefab présent.
+[OK] Input Actions présent.
+[OK] KenjiroCharacter_v16 intégré.
+[OK] Kikai-Yūrei présent sur le prefab.
+[OK] Build Settings : TitleScreen -> Foundry_Prototype.
+[OK] Marker présent : CombatSystem_v7
+[OK] Marker présent : CombatPolish_v8
+[OK] Marker présent : VERTICAL_SLICE_V9
+[OK] Marker présent : FoundryTruePainted_v14
+[OK] Marker présent : DemoProduction_v15
+[OK] Marker présent : DemoReleaseCandidate_v16
+
+WARNINGS
+[WARN] Animator Controller manquant : Assets/_Game/Animations/Kenjiro/Kenjiro_Prototype.controller
+
+REMARQUE : cette validation ne remplace pas une compilation Unity, un test Game View ni un test de build sur machine cible.

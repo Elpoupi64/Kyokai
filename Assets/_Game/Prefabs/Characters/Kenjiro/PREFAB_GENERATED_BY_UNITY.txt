@@ -1,0 +1,1 @@
+Kenjiro_Prototype.prefab est créé automatiquement par FoundryPrototypeSceneBuilder.cs lors de la première compilation Unity.

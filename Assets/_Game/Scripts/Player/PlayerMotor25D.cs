@@ -28,8 +28,8 @@ public class PlayerMotor25D : MonoBehaviour
 
     [Header("Visual")]
     [SerializeField] private Transform visualRoot;
-    [SerializeField] private float facingRightAngle = 90f;
-    [SerializeField] private float facingLeftAngle = -90f;
+    [SerializeField] private float facingRightAngle = 0f;
+    [SerializeField] private float facingLeftAngle = 180f;
 
     private Rigidbody rb;
     private PlayerInput playerInput;

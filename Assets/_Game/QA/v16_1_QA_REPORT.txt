@@ -1,0 +1,144 @@
+KATSUHIRO v16.1 RC2 — QA HOTFIX + BUILD VALIDATION
+==================================================
+Version : Prototype v17 — Final Demo Polish / External Playtest
+Unity : 6000.5.9f1
+Build target : StandaloneWindows64
+
+STATUS : READY FOR BUILD TEST
+PASS=120 | WARNING=4 | BLOCKER=0
+
+PASS
+----
+[PASS] Scène titre présent : Assets/_Game/Scenes/Demo/TitleScreen.unity
+[PASS] Scène gameplay présent : Assets/_Game/Scenes/Prototype/Foundry_Prototype.unity
+[PASS] Prefab Kenjiro présent : Assets/_Game/Prefabs/Characters/Kenjiro/Kenjiro_Prototype.prefab
+[PASS] Prefab Doryoku-3 présent : Assets/_Game/Prefabs/Enemies/Doryoku3/Doryoku3_Possessed.prefab
+[PASS] Input Actions présent : Assets/_Game/Input/PlayerControls.asset
+[PASS] Animator Controller présent : Assets/_Game/Animations/Kenjiro/KenjiroAnimatorController.controller
+[PASS] Volume Profile v14 présent : Assets/_Game/Art/PostProcess/Foundry_Atmosphere_v14.asset
+[PASS] URP PC Asset présent.
+[PASS] URP PC Renderer présent.
+[PASS] 6/6 références personnages disponibles.
+[PASS] Action Map 'Player' disponible.
+[PASS] Input Action : Move
+[PASS] Input Action : Jump
+[PASS] Input Action : Attack
+[PASS] Input Action : HeavyAttack
+[PASS] Input Action : Dodge
+[PASS] Input Action : SpecialAttack
+[PASS] Input Action : Ability
+[PASS] Jump binding : <Keyboard>/space
+[PASS] Attack binding : <Keyboard>/j
+[PASS] HeavyAttack binding : <Keyboard>/i
+[PASS] Dodge binding : <Keyboard>/leftShift
+[PASS] SpecialAttack binding : <Keyboard>/l
+[PASS] Ability binding : <Keyboard>/k
+[PASS] Jump binding : <Gamepad>/buttonSouth
+[PASS] Attack binding : <Gamepad>/buttonWest
+[PASS] Ability binding : <Gamepad>/buttonNorth
+[PASS] Animator Controller corrigé : KenjiroAnimatorController.controller.
+[PASS] Animator state : Idle
+[PASS] Animator state : Run
+[PASS] Animator state : Jump
+[PASS] Animator state : Fall
+[PASS] Animator state : Attack1
+[PASS] Animator state : Attack2
+[PASS] Animator state : Attack3
+[PASS] Animator state : HeavyAttack
+[PASS] Animator state : AirAttack
+[PASS] Animator state : Dodge
+[PASS] Animator state : DodgeCounter
+[PASS] Animator state : KikaiSpecial
+[PASS] Animator state : Hurt
+[PASS] Animator state : Death
+[PASS] Animator possède 1 layer(s).
+[PASS] Kenjiro : ModelRoot présent.
+[PASS] KenjiroCharacter_v16 intégré.
+[PASS] Kikai-Yūrei présent sur Kenjiro.
+[PASS] Animator présent sur le prefab Kenjiro.
+[PASS] Prefab Kenjiro : aucun script manquant.
+[PASS] Doryoku-3 : logique ennemie présente.
+[PASS] Doryoku-3 : contrôleur visuel présent.
+[PASS] Doryoku-3 : VFX controller présent.
+[PASS] Prefab Doryoku-3 : aucun script manquant.
+[PASS] Build Settings : 0 TitleScreen -> 1 Foundry_Prototype.
+[PASS] Plateforme active : StandaloneWindows64
+[PASS] URP actif : PC_RPAsset
+[PASS] PC_RPAsset chargé.
+[PASS] Volume Profile Foundry_Atmosphere_v14 chargé.
+[PASS] Quality preset : Performance
+[PASS] Quality preset : Balanced
+[PASS] Quality preset : Cinematic
+[PASS] Unity Quality Settings disponibles : 2
+[PASS] TitleScreen : aucun script manquant.
+[PASS] TitleScreen -> Foundry_Prototype configuré.
+[PASS] TitleScreen : Kenjiro texture assigné.
+[PASS] TitleScreen : Yuki texture assigné.
+[PASS] TitleScreen : Takeda texture assigné.
+[PASS] TitleScreen : DemoQualityManager présent.
+[PASS] TitleScreen : caméra présente.
+[PASS] Foundry_Prototype : aucun script manquant.
+[PASS] Scene root : GAMEPLAY
+[PASS] Scene root : LEVEL
+[PASS] Scene root : CAMERA
+[PASS] Scene root : LIGHTING
+[PASS] PlayerInput présent.
+[PASS] PlayerInput.actions assigné.
+[PASS] PlayerInput defaultActionMap = Player.
+[PASS] PlayerMotor25D présent.
+[PASS] PlayerHealth présent.
+[PASS] KenjiroCombatController présent.
+[PASS] Animator de scène relié au bon controller.
+[PASS] KikaiWorldManager présent.
+[PASS] VerticalSliceDirector présent.
+[PASS] VerticalSliceDirector.player assigné.
+[PASS] VerticalSliceDirector.playerMotor assigné.
+[PASS] VerticalSliceDirector.playerCombat assigné.
+[PASS] VerticalSliceDirector.worldManager assigné.
+[PASS] VerticalSliceDirector.firstEnemy assigné.
+[PASS] VerticalSliceDirector.chaseSequence assigné.
+[PASS] VerticalSliceDirector.boss assigné.
+[PASS] Checkpoint(s) : 1
+[PASS] Doryoku3BossEncounter présent.
+[PASS] BossEncounter.boss assigné.
+[PASS] BossEncounter.player assigné.
+[PASS] BossEncounter.playerMotor assigné.
+[PASS] BossEncounter.playerCombat assigné.
+[PASS] BossEncounter.bossCamera assigné.
+[PASS] BossEncounter.bossHUD assigné.
+[PASS] BossEncounter.leftGate assigné.
+[PASS] BossEncounter.rightGate assigné.
+[PASS] DemoPauseMenu présent.
+[PASS] DemoPerformanceHUD présent.
+[PASS] DemoQualityManager présent en scène.
+[PASS] Caméra gameplay présente.
+[PASS] Caméra HDR activée.
+[PASS] CameraFollow25D présent.
+[PASS] Global Volume relié à un profile.
+[PASS] Marker : CombatSystem_v7
+[PASS] Marker : CombatPolish_v8
+[PASS] Marker : VERTICAL_SLICE_V9
+[PASS] Marker : FoundryTruePainted_v14
+[PASS] Marker : DemoProduction_v15
+[PASS] Marker : DemoReleaseCandidate_v16
+[PASS] Marker : DemoReleaseCandidate_v16_1
+[PASS] Flow contract : TitleScreen -> Nouvelle partie / Continuer
+[PASS] Flow contract : Checkpoint persistence
+[PASS] Flow contract : Checkpoint -> sauvegarde
+[PASS] Flow contract : Continuer -> respawn
+[PASS] Flow contract : Boss -> fin -> retour titre
+[PASS] Flow contract : Pause -> restart / titre
+[PASS] Flow structurel : Title -> Game -> Checkpoint -> Boss -> End -> Title.
+
+WARNING
+-------
+[WARNING] Post-process override absent : Bloom
+[WARNING] Post-process override absent : ColorAdjustments
+[WARNING] Post-process override absent : Vignette
+[WARNING] Post-process override absent : Tonemapping
+
+BLOCKER
+-------
+[BLOCKER] Aucun.
+
+NOTE : un rapport sans blocker valide la structure du projet pour un test de build. Il ne remplace pas le test Play Mode, le profiling FPS ni le test de l'exécutable.

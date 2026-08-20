@@ -1,0 +1,19 @@
+KATSUHIRO v17 — EXTERNAL PLAYTEST QA
+====================================
+Base v16.1 : PASS=120 WARNING=4 BLOCKER=0
+
+PASS
+[PASS] v16.1 preflight sans blocker.
+[PASS] Playtest telemetry présent.
+[PASS] Playtest HUD présent.
+[PASS] Final polish builder présent.
+[PASS] Playtest guide présent.
+[PASS] Playtest survey présent.
+[PASS] Marker ExternalPlaytest_v17 présent.
+[PASS] Version v17 Playtest 1 active.
+
+WARNING
+[WARNING] Aucun.
+
+BLOCKER
+[BLOCKER] Aucun.

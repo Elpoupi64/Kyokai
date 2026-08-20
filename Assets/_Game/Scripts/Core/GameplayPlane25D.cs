@@ -24,8 +24,11 @@ public class GameplayPlane25D : MonoBehaviour
         position.z = gameplayPlaneZ;
         rb.position = position;
 
-        Vector3 velocity = rb.linearVelocity;
-        velocity.z = 0f;
-        rb.linearVelocity = velocity;
+        if (!rb.isKinematic)
+        {
+            Vector3 velocity = rb.linearVelocity;
+            velocity.z = 0f;
+            rb.linearVelocity = velocity;
+        }
     }
 }

@@ -1,0 +1,20 @@
+KATSUHIRO v16 — STATIC QA REPORT
+================================
+Scripts C# analysés : 81
+Accolades déséquilibrées : 0
+Noms de classes dupliqués : 0
+
+Fichiers v16 attendus :
+[OK] Assets/_Game/Scripts/Demo/DemoBuildInfo.cs
+[OK] Assets/_Game/Scripts/Demo/DemoSceneLoader.cs
+[OK] Assets/_Game/Editor/KenjiroProductionCharacterBuilder.cs
+[OK] Assets/_Game/Editor/KatsuhiroV16GameplayPolishBuilder.cs
+[OK] Assets/_Game/Editor/KatsuhiroV16ReleaseCandidateBuilder.cs
+[OK] Assets/_Game/Editor/KatsuhiroV16QAValidator.cs
+[OK] Assets/_Game/Editor/KatsuhiroV16UpgradeBuilder.cs
+
+Limites :
+- pas de compilation C# Unity dans cet environnement ;
+- pas de validation Game View / URP / Input System ;
+- pas de test FPS réel ;
+- pas de build exécutable générée ici.

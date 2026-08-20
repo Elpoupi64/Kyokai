@@ -1,0 +1,27 @@
+KATSUHIRO v16.1 RC2 — STATIC QA (HORS UNITY)
+=============================================
+Scripts C# analysés : 81
+Accolades déséquilibrées : 0
+Classes dupliquées : 0
+GUID .meta dupliqués : 0
+Animator states attendus manquants : 0
+Input actions attendues manquantes : 0
+Marqueurs historiques manquants dans la scène actuelle : 0
+
+Hotfix Animator :
+[PASS] Assets/_Game/Animations/Kenjiro/KenjiroAnimatorController.controller
+[PASS] Le validator v16.1 pointe vers KenjiroAnimatorController.controller.
+
+Références visuelles actualisées :
+[PASS] Assets/_Game/Art/Characters/ProductionReferences/v16/Kenjiro_ModelSheet.png
+[PASS] Assets/_Game/Art/Characters/ProductionReferences/v16/Takeda_ModelSheet.png
+[PASS] Assets/_Game/Art/Characters/ProductionReferences/v16/Yuki_ModelSheet.png
+[PASS] Assets/_Game/Art/Characters/ProductionReferences/v16/Kenjiro_TitleReference.png
+[PASS] Assets/_Game/Art/Characters/ProductionReferences/v16/Takeda_TitleReference.png
+[PASS] Assets/_Game/Art/Characters/ProductionReferences/v16/Yuki_TitleReference.png
+
+NOTE IMPORTANTE
+---------------
+Ce contrôle statique ne compile pas Unity.
+Le marker DemoReleaseCandidate_v16_1 sera ajouté au prochain Create/Rebuild dans Unity.
+Le rapport complet PASS/WARNING/BLOCKER sera généré par Run v16.1 QA Validation.

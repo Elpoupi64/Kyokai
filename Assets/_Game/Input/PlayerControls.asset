@@ -53,6 +53,33 @@ MonoBehaviour:
       m_SingletonActionBindings: []
       m_Flags: 0
       m_Priority: 0
+    - m_Name: HeavyAttack
+      m_Type: 1
+      m_ExpectedControlType: 
+      m_Id: 5f903a7f-1b9b-4b4b-9b98-bbfa8be974f6
+      m_Processors: 
+      m_Interactions: 
+      m_SingletonActionBindings: []
+      m_Flags: 0
+      m_Priority: 0
+    - m_Name: Dodge
+      m_Type: 1
+      m_ExpectedControlType: 
+      m_Id: 58ffbb27-ff4f-4ba9-ad82-5511fd7b76fb
+      m_Processors: 
+      m_Interactions: 
+      m_SingletonActionBindings: []
+      m_Flags: 0
+      m_Priority: 0
+    - m_Name: SpecialAttack
+      m_Type: 1
+      m_ExpectedControlType: 
+      m_Id: 5a3ea4c6-2da7-4784-bd3c-ff22974cf2c0
+      m_Processors: 
+      m_Interactions: 
+      m_SingletonActionBindings: []
+      m_Flags: 0
+      m_Priority: 0
     m_Bindings:
     - m_Name: 2DVector
       m_Id: b409c0b8-5ac0-48a2-aa65-24f36cc396bf
@@ -189,6 +216,54 @@ MonoBehaviour:
       m_Processors: 
       m_Groups: 
       m_Action: Ability
+      m_Flags: 0
+    - m_Name: 
+      m_Id: 53341028-67f6-45e1-8b38-815d1e05ef4c
+      m_Path: <Keyboard>/i
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: HeavyAttack
+      m_Flags: 0
+    - m_Name: 
+      m_Id: f270b3c8-bf59-47f1-b1eb-2f7c08048a7c
+      m_Path: <Gamepad>/rightShoulder
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: HeavyAttack
+      m_Flags: 0
+    - m_Name: 
+      m_Id: 88012b97-41dc-470a-936a-9eabc344d49a
+      m_Path: <Keyboard>/leftShift
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: Dodge
+      m_Flags: 0
+    - m_Name: 
+      m_Id: 22f3317b-a35b-43fc-88a1-82823bd4f72e
+      m_Path: <Gamepad>/buttonEast
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: Dodge
+      m_Flags: 0
+    - m_Name: 
+      m_Id: 5a881e09-19ab-463b-9ac5-9e442db038dd
+      m_Path: <Keyboard>/l
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: SpecialAttack
+      m_Flags: 0
+    - m_Name: 
+      m_Id: 6128ae3f-2b25-45e2-a0bb-5b7d1b624c50
+      m_Path: <Gamepad>/rightTrigger
+      m_Interactions: 
+      m_Processors: 
+      m_Groups: 
+      m_Action: SpecialAttack
       m_Flags: 0
   m_ControlSchemes: []
   m_IsProjectWide: 0

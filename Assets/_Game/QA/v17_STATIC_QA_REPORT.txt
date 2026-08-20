@@ -1,0 +1,32 @@
+KATSUHIRO v17 — STATIC QA (HORS UNITY)
+=======================================
+Scripts C# analysés : 88
+Accolades déséquilibrées : 0
+Classes dupliquées : 0
+
+Fichiers v17 :
+[PASS] Assets/_Game/Scripts/Demo/DemoPlaytestTelemetry.cs
+[PASS] Assets/_Game/Scripts/Demo/DemoPlaytestHUD.cs
+[PASS] Assets/_Game/Scripts/Demo/DemoPerformanceHUD.cs
+[PASS] Assets/_Game/Editor/KatsuhiroV17FinalPolishBuilder.cs
+[PASS] Assets/_Game/Editor/KatsuhiroV17ExternalPlaytestBuilder.cs
+[PASS] Assets/_Game/Editor/KatsuhiroV17PlaytestQAValidator.cs
+[PASS] Assets/_Game/Editor/KatsuhiroV17ExternalPlaytestBuildMenu.cs
+[PASS] Assets/_Game/Editor/KatsuhiroV17UpgradeBuilder.cs
+[PASS] Assets/_Game/Playtest/PLAYTEST_GUIDE_v17.txt
+[PASS] Assets/_Game/Playtest/EXTERNAL_PLAYTEST_SURVEY_v17.txt
+[PASS] Assets/_Game/Editor/FoundryPrototypeSceneBuilder.cs
+[PASS] contrat DemoPlaytestTelemetry.RecordDeath
+[PASS] contrat DemoPlaytestTelemetry.RecordCheckpoint
+[PASS] contrat DemoPlaytestTelemetry.RecordBossAttempt
+[PASS] contrat DemoPlaytestTelemetry.RecordBossDefeated
+[PASS] contrat DemoPlaytestTelemetry.RecordDemoCompleted
+[PASS] contrat KatsuhiroV17FinalPolishBuilder.Apply
+[PASS] contrat KatsuhiroV17ExternalPlaytestBuilder.Apply
+
+LIMITES
+-------
+- pas de compilation Unity dans cet environnement ;
+- pas de Play Mode automatisé réel ;
+- pas de mesure FPS réelle ;
+- le marker ExternalPlaytest_v17 est créé au prochain Create/Rebuild.
