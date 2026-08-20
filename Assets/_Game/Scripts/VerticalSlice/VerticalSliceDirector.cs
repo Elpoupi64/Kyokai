@@ -30,7 +30,6 @@ public class VerticalSliceDirector : MonoBehaviour
     [Header("Progression X")]
     [SerializeField] private float movementDoneX = -63f;
     [SerializeField] private float bridgeCrossedX = -45f;
-    [SerializeField] private float checkpointZoneX = -24f;
 
     private SliceStep step = SliceStep.Movement;
 

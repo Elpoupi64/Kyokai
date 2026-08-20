@@ -929,13 +929,6 @@ public static class KatsuhiroV171LevelPacingBuilder
             -45f
         );
 
-        // This is now the start of the machine-room gate, not a bypass.
-        SetFloat(
-            so,
-            "checkpointZoneX",
-            -22.0f
-        );
-
         so.ApplyModifiedPropertiesWithoutUndo();
     }
 
