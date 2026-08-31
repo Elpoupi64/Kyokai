@@ -1,0 +1,23 @@
+# Unreal generated files
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# IDE and user-local files
+.vs/
+.vscode/
+*.sln
+*.slnx
+*.VC.db
+*.VC.opendb
+*.suo
+
+# Build products
+*.opensdf
+*.sdf
+*.tmp
+*.log
+
+# Claude Code local session state
+.claude/
