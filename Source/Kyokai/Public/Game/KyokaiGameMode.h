@@ -105,4 +105,35 @@ private:
 	TWeakObjectPtr<APlayerController> DropTestController;
 	TArray<FString> DropTestEntries;
 	int32 DropTestPollAttempts = 0;
+
+	/**
+	 * Level 02 ("Les Toits sous la pluie") main-path timing bot. Enabled
+	 * only with -KyokaiLevel02Timing: holds D for the whole run and fires
+	 * jump/slide/dash taps reactively as the pawn's X position crosses
+	 * known obstacle thresholds (computed from the level's own build
+	 * coordinates), plus a periodic jump tap while inside the wall-jump
+	 * shaft's X range and below its exit height. This is a mechanical
+	 * traversal time, not a human playtest - build-order step 3 ("time the
+	 * level without enemies") explicitly wants this as an early pacing
+	 * sanity check before step 7's real 5-player test. Writes
+	 * Saved/Level02TimingReport.json with the total time and a per-segment
+	 * split (segment boundaries are the X thresholds used to build the
+	 * level's SegmentMarker_N_End platforms).
+	 */
+	void TryStartLevel02Timing();
+	void PollForPawnThenRunLevel02Timing();
+	void TickLevel02Timing();
+	void FinishLevel02Timing(const FString& Outcome);
+
+	FTimerHandle Level02TimingPollHandle;
+	FTimerHandle Level02TimingTickHandle;
+	TWeakObjectPtr<AKyokaiCharacter> Level02TimingCharacter;
+	TWeakObjectPtr<APlayerController> Level02TimingController;
+	TArray<FString> Level02TimingEntries;
+	int32 Level02TimingPollAttempts = 0;
+	float Level02TimingStartTime = 0.0f;
+	int32 Level02TimingNextTrigger = 0;
+	int32 Level02TimingNextSegment = 0;
+	float Level02TimingLastShaftPress = -1000.0f;
+	bool bLevel02TimingSliding = false;
 };

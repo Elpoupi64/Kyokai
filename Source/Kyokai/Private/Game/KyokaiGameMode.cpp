@@ -39,6 +39,7 @@ void AKyokaiGameMode::BeginPlay()
 	TryStartWallJumpTest();
 	TryStartBounceTest();
 	TryStartDropTest();
+	TryStartLevel02Timing();
 }
 
 void AKyokaiGameMode::TryStartInputSmokeTest()
@@ -667,6 +668,201 @@ void AKyokaiGameMode::FinishDropTest(const FString& Outcome)
 	Json += TEXT("  ]\n}\n");
 
 	const FString OutPath = FPaths::ProjectSavedDir() / TEXT("DropSmokeTest.json");
+	FFileHelper::SaveStringToFile(Json, *OutPath);
+
+	FGenericPlatformMisc::RequestExit(false);
+}
+
+void AKyokaiGameMode::TryStartLevel02Timing()
+{
+	if (!FParse::Param(FCommandLine::Get(), TEXT("KyokaiLevel02Timing")))
+	{
+		return;
+	}
+
+	Level02TimingEntries.Reset();
+	Level02TimingPollAttempts = 0;
+	GetWorldTimerManager().SetTimer(
+		Level02TimingPollHandle, this, &AKyokaiGameMode::PollForPawnThenRunLevel02Timing, 0.2f, true);
+}
+
+void AKyokaiGameMode::PollForPawnThenRunLevel02Timing()
+{
+	++Level02TimingPollAttempts;
+
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	AKyokaiCharacter* Character = PC ? Cast<AKyokaiCharacter>(PC->GetPawn()) : nullptr;
+
+	if (!Character && Level02TimingPollAttempts < 25) // ~5s at 0.2s intervals
+	{
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(Level02TimingPollHandle);
+
+	if (!Character)
+	{
+		FinishLevel02Timing(TEXT("no pawn possessed within timeout"));
+		return;
+	}
+
+	Level02TimingController = PC;
+	Level02TimingCharacter = Character;
+	Level02TimingStartTime = GetWorld()->GetTimeSeconds();
+	Level02TimingNextTrigger = 0;
+	Level02TimingNextSegment = 0;
+	Level02TimingLastShaftPress = -1000.0f;
+	bLevel02TimingSliding = false;
+
+	PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
+	Level02TimingEntries.Add(TEXT("{\"step\": \"run_started\"}"));
+
+	GetWorldTimerManager().SetTimer(Level02TimingTickHandle, this, &AKyokaiGameMode::TickLevel02Timing, 0.05f, true);
+}
+
+void AKyokaiGameMode::TickLevel02Timing()
+{
+	APlayerController* PC = Level02TimingController.Get();
+	AKyokaiCharacter* Character = Level02TimingCharacter.Get();
+	if (!PC || !Character)
+	{
+		GetWorldTimerManager().ClearTimer(Level02TimingTickHandle);
+		FinishLevel02Timing(TEXT("pawn or controller became invalid mid-run"));
+		return;
+	}
+
+	const float Elapsed = GetWorld()->GetTimeSeconds() - Level02TimingStartTime;
+	const FVector Loc = Character->GetActorLocation();
+
+	// One-shot reactive triggers, in ascending X order - computed from this
+	// level's own build coordinates (see kyokai-level02-toits-pluie memory).
+	// 0=JumpTap 1=SlideStart 2=SlideEnd 3=DashTap
+	// Slide start/end triggers sit much further from the ceiling than the
+	// nominal clearance boundary would suggest - a 50cm buffer looked fine
+	// on paper but wasn't: the capsule's own 42cm radius plus a tick or two
+	// of input-dispatch latency (InputKey() doesn't process synchronously)
+	// eats almost all of a tight margin, and the character hit the ceiling
+	// face-on while still standing before the crouch could apply. Same
+	// logic in reverse for release: uncrouching needs the capsule's trailing
+	// edge clear of the ceiling too, not just its center.
+	// Dash trigger (16610) fires just AFTER the ledge edge (16600), not
+	// before: pressing dash while still grounded flies a flat trajectory
+	// that zeroes vertical velocity and covers less ground than falling
+	// first - already learned the hard way on the controller gym's Zone 7
+	// (see kyokai-prototype-state memory) - only dashing once already
+	// falling gets the height needed to clear the drop.
+	// The Segment 2 bounce pad (BouncePad_Seg2, X=6350, radius 65cm after
+	// scale) is a solid mesh, not a pass-through trigger volume - a jump
+	// timed too close to its near face (6285) just runs into its side wall
+	// and stops dead, same as hitting any other wall. Jumping well before
+	// it (6150, 135cm of margin) arcs onto/over it instead.
+	static const float TriggerX[] = {
+		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6200.f, 6820.f, 7320.f, 7820.f,
+		9270.f, 11670.f, 12470.f, 15470.f, 15800.f, 16610.f, 16700.f, 17570.f
+	};
+	static const int32 TriggerType[] = {
+		0, 0, 0, 1, 2, 0, 0, 0, 0,
+		0, 0, 0, 0, 1, 3, 2, 0
+	};
+	static const int32 NumTriggers = UE_ARRAY_COUNT(TriggerX);
+
+	while (Level02TimingNextTrigger < NumTriggers && Loc.X >= TriggerX[Level02TimingNextTrigger])
+	{
+		switch (TriggerType[Level02TimingNextTrigger])
+		{
+		case 0: // jump tap
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+			break;
+		case 1: // slide start
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftControl, IE_Pressed, 1.0f));
+			bLevel02TimingSliding = true;
+			break;
+		case 2: // slide end
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftControl, IE_Released, 0.0f));
+			bLevel02TimingSliding = false;
+			break;
+		case 3: // dash tap
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftShift, IE_Pressed, 1.0f));
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftShift, IE_Released, 0.0f));
+			break;
+		default:
+			break;
+		}
+		++Level02TimingNextTrigger;
+	}
+
+	// Wall-jump shaft (Segment 5, X=12600-12860): periodic jump taps while
+	// below the exit height - PerformWallJump() only fires as a fallback
+	// when CanJump() is false and a wall is touched, so spamming this is
+	// safe outside the shaft too, but it's scoped here anyway for clarity.
+	if (Loc.X >= 12600.f && Loc.X <= 12860.f && Loc.Z < 1150.f && Elapsed - Level02TimingLastShaftPress >= 0.25f)
+	{
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		Level02TimingLastShaftPress = Elapsed;
+	}
+
+	// Segment splits - X thresholds match each SegmentMarker_N_End platform.
+	static const float SegmentEndX[] = { 4250.f, 6850.f, 10450.f, 12200.f, 14060.f, 15500.f, 18000.f };
+	static const TCHAR* SegmentNames[] = {
+		TEXT("Seg1_Accroche"), TEXT("Seg2_Enseignement"), TEXT("Seg3_Enseignes"),
+		TEXT("Seg4_Onibi"), TEXT("Seg5_Gouttieres"), TEXT("Seg6_Paratonnerres"), TEXT("Seg7_Finish")
+	};
+	static const int32 NumSegments = UE_ARRAY_COUNT(SegmentEndX);
+
+	while (Level02TimingNextSegment < NumSegments && Loc.X >= SegmentEndX[Level02TimingNextSegment])
+	{
+		Level02TimingEntries.Add(FString::Printf(
+			TEXT("{\"segment\": \"%s\", \"elapsed_s\": %.2f, \"location_x\": %.2f, \"location_z\": %.2f}"),
+			SegmentNames[Level02TimingNextSegment], Elapsed, Loc.X, Loc.Z));
+		++Level02TimingNextSegment;
+
+		if (Level02TimingNextSegment >= NumSegments)
+		{
+			GetWorldTimerManager().ClearTimer(Level02TimingTickHandle);
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
+			FinishLevel02Timing(TEXT("completed"));
+			return;
+		}
+	}
+
+	static float LastDebugLogTime = -1000.0f;
+	if (Elapsed - LastDebugLogTime >= 1.0f)
+	{
+		LastDebugLogTime = Elapsed;
+		Level02TimingEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"debug_trace\", \"elapsed_s\": %.2f, \"location_x\": %.2f, \"location_z\": %.2f, \"velocity_x\": %.2f, \"is_grounded\": %s}"),
+			Elapsed, Loc.X, Loc.Z, Character->GetVelocity().X,
+			Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround() ? TEXT("true") : TEXT("false")));
+	}
+
+	// Safety timeout - a stuck or fallen-through run shouldn't hang forever.
+	if (Elapsed > 90.0f)
+	{
+		GetWorldTimerManager().ClearTimer(Level02TimingTickHandle);
+		Level02TimingEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"timeout\", \"elapsed_s\": %.2f, \"location_x\": %.2f, \"location_z\": %.2f, \"next_trigger_index\": %d, \"next_segment_index\": %d}"),
+			Elapsed, Loc.X, Loc.Z, Level02TimingNextTrigger, Level02TimingNextSegment));
+		FinishLevel02Timing(TEXT("timeout - likely stuck or fell through"));
+		return;
+	}
+}
+
+void AKyokaiGameMode::FinishLevel02Timing(const FString& Outcome)
+{
+	FString Json = TEXT("{\n  \"outcome\": \"");
+	Json += Outcome;
+	Json += TEXT("\",\n  \"steps\": [\n");
+	for (int32 Index = 0; Index < Level02TimingEntries.Num(); ++Index)
+	{
+		Json += TEXT("    ");
+		Json += Level02TimingEntries[Index];
+		Json += (Index + 1 < Level02TimingEntries.Num()) ? TEXT(",\n") : TEXT("\n");
+	}
+	Json += TEXT("  ]\n}\n");
+
+	const FString OutPath = FPaths::ProjectSavedDir() / TEXT("Level02TimingReport.json");
 	FFileHelper::SaveStringToFile(Json, *OutPath);
 
 	FGenericPlatformMisc::RequestExit(false);
