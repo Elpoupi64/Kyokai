@@ -771,13 +771,19 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// 14600 (new): Roof_Seg6_A ends at 14700, Roof_Seg6_B starts at 15000 -
 	// a 300cm gap with no trigger at all in the original table (a genuine
 	// gap in coverage, not a mistimed one like the others above).
+	// 15470 (removed): used to fire for the Roof_Seg6_B -> RunupTunnel gap,
+	// but that gap is gone now (Roof_Seg6_B extended to connect flush with
+	// the tunnel at 15800) - the character's height on arrival here varies
+	// run-to-run (the wall-jump shaft's climb isn't precise), so a jump-
+	// precision gap right after it was fragile by construction, not a
+	// simple mistimed trigger like the others.
 	static const float TriggerX[] = {
 		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6150.f, 7350.f, 7750.f,
-		9200.f, 11350.f, 12470.f, 14600.f, 15470.f, 15800.f, 16610.f, 16700.f, 17570.f
+		9200.f, 11350.f, 12470.f, 14600.f, 15800.f, 16610.f, 16700.f, 17570.f
 	};
 	static const int32 TriggerType[] = {
 		0, 0, 0, 1, 2, 0, 0, 0,
-		0, 0, 0, 0, 0, 1, 3, 2, 0
+		0, 0, 0, 0, 1, 3, 2, 0
 	};
 	static const int32 NumTriggers = UE_ARRAY_COUNT(TriggerX);
 
