@@ -1015,13 +1015,29 @@ void AKyokaiGameMode::TickLevel02Timing()
 	if (Elapsed - Level02TimingLastDodgeJump >= 0.3f)
 	{
 		bool bShouldDodge = false;
-		if (const AOnibi* Onibi = Cast<AOnibi>(UGameplayStatics::GetActorOfClass(this, AOnibi::StaticClass())))
+
+		// GetActorOfClass() only returns ONE actor - fine for a single
+		// Onibi, but the Segment 4 gauntlet (Onibi_Seg4/_B/_C) needs every
+		// instance checked, or the bot would only ever react to whichever
+		// one the query happens to return and walk straight into the others.
+		TArray<AActor*> OnibiActors;
+		UGameplayStatics::GetAllActorsOfClass(this, AOnibi::StaticClass(), OnibiActors);
+		for (const AActor* Actor : OnibiActors)
 		{
-			bShouldDodge |= Onibi->bIsTelegraphingCharge;
+			if (const AOnibi* Onibi = Cast<AOnibi>(Actor))
+			{
+				bShouldDodge |= Onibi->bIsTelegraphingCharge;
+			}
 		}
-		if (const ABakeneko* Bakeneko = Cast<ABakeneko>(UGameplayStatics::GetActorOfClass(this, ABakeneko::StaticClass())))
+
+		TArray<AActor*> BakenekoActors;
+		UGameplayStatics::GetAllActorsOfClass(this, ABakeneko::StaticClass(), BakenekoActors);
+		for (const AActor* Actor : BakenekoActors)
 		{
-			bShouldDodge |= Bakeneko->bIsTelegraphingPounce;
+			if (const ABakeneko* Bakeneko = Cast<ABakeneko>(Actor))
+			{
+				bShouldDodge |= Bakeneko->bIsTelegraphingPounce;
+			}
 		}
 
 		if (bShouldDodge)
