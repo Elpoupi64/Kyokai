@@ -13,6 +13,7 @@
 #include "Engine/LocalPlayer.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Game/KyokaiGameMode.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "InputAction.h"
@@ -107,6 +108,24 @@ void AKyokaiCharacter::Tick(const float DeltaSeconds)
 	TryConsumeJumpBuffer();
 	UpdateCameraLookAhead(DeltaSeconds);
 	UpdateWallDetection();
+
+	// Fall-catch: -600 sits well below the lowest real platform in Level 02
+	// (top=0, the lowest of any Segment 1/2 platform - confirmed by
+	// querying every StaticMeshActor's Z), so this only fires once the
+	// player has genuinely fallen off the world, not during a legitimate
+	// designed drop. Sends them back to the last checkpoint reached
+	// (AKyokaiGameMode::GetRespawnLocation(), which falls back to the
+	// level's PlayerStart if none has been activated yet) - this is the
+	// checkpoint system's actual gameplay purpose, not just "touch and
+	// light up".
+	if (GetActorLocation().Z < -600.0f)
+	{
+		if (const AKyokaiGameMode* GameMode = GetWorld()->GetAuthGameMode<AKyokaiGameMode>())
+		{
+			SetActorLocation(GameMode->GetRespawnLocation(), false, nullptr, ETeleportType::TeleportPhysics);
+			GetKyokaiMovement()->StopMovementImmediately();
+		}
+	}
 
 	if (bShowPrototypeDebug)
 	{

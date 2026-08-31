@@ -18,10 +18,20 @@ class KYOKAI_API AKyokaiGameMode : public AGameModeBase
 public:
 	AKyokaiGameMode();
 
+	/** Called by ACheckpoint when the player reaches it. Idempotent - reactivating an already-active or earlier checkpoint is harmless. */
+	UFUNCTION(BlueprintCallable, Category = "Kyokai|Checkpoint")
+	void NotifyCheckpointActivated(const FVector& Location);
+
+	/** Last activated checkpoint, or the level's PlayerStart if none has been reached yet. */
+	UFUNCTION(BlueprintPure, Category = "Kyokai|Checkpoint")
+	FVector GetRespawnLocation() const { return RespawnLocation; }
+
 protected:
 	virtual void BeginPlay() override;
 
 private:
+	FVector RespawnLocation = FVector::ZeroVector;
+
 	/**
 	 * Optional headless functional check for the fallback keyboard bindings
 	 * (A/D, Space, LeftControl, LeftShift, F1). Enabled only with

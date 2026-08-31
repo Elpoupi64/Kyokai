@@ -5,7 +5,9 @@
 #include "Characters/KyokaiCharacter.h"
 #include "Characters/KyokaiMovementComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/PlayerStart.h"
 #include "HAL/PlatformMisc.h"
+#include "Kismet/GameplayStatics.h"
 #include "InputCoreTypes.h"
 #include "InputKeyEventArgs.h"
 #include "Misc/CommandLine.h"
@@ -35,11 +37,22 @@ AKyokaiGameMode::AKyokaiGameMode()
 void AKyokaiGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (const AActor* Start = UGameplayStatics::GetActorOfClass(this, APlayerStart::StaticClass()))
+	{
+		RespawnLocation = Start->GetActorLocation();
+	}
+
 	TryStartInputSmokeTest();
 	TryStartWallJumpTest();
 	TryStartBounceTest();
 	TryStartDropTest();
 	TryStartLevel02Timing();
+}
+
+void AKyokaiGameMode::NotifyCheckpointActivated(const FVector& Location)
+{
+	RespawnLocation = Location;
 }
 
 void AKyokaiGameMode::TryStartInputSmokeTest()
@@ -768,9 +781,13 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// Roof_Seg4_Arena's actual edge (11450) - the character was already
 	// falling for 220cm before the jump input landed. Moved to 11350
 	// (100cm before the edge), matching every other working trigger's margin.
-	// 14600 (new): Roof_Seg6_A ends at 14700, Roof_Seg6_B starts at 15000 -
-	// a 300cm gap with no trigger at all in the original table (a genuine
-	// gap in coverage, not a mistimed one like the others above).
+	// 14600 (removed): used to fire for the Roof_Seg6_A -> Roof_Seg6_B gap.
+	// That gap is gone now too (Roof_Seg6_A extended to connect flush with
+	// Roof_Seg6_B at 15000) - a genuine fall was found in this exact
+	// stretch during a later, more extreme wall-jump-shaft-climb-variance
+	// run (discovered via the new checkpoint respawn looping here instead
+	// of the bot just ending the run, per the same run-to-run variance
+	// already documented for the Seg6_B->tunnel gap below). Same fix.
 	// 15470 (removed): used to fire for the Roof_Seg6_B -> RunupTunnel gap,
 	// but that gap is gone now (Roof_Seg6_B extended to connect flush with
 	// the tunnel at 15800) - the character's height on arrival here varies
@@ -786,11 +803,11 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// to the pad's face" issue documented for BouncePad_Seg2 earlier).
 	static const float TriggerX[] = {
 		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6150.f, 7350.f,
-		9200.f, 11350.f, 12470.f, 14600.f, 15800.f, 16610.f, 16700.f, 17570.f
+		9200.f, 11350.f, 12470.f, 15800.f, 16610.f, 16700.f, 17570.f
 	};
 	static const int32 TriggerType[] = {
 		0, 0, 0, 1, 2, 0, 0,
-		0, 0, 0, 0, 1, 3, 2, 0
+		0, 0, 0, 1, 3, 2, 0
 	};
 	static const int32 NumTriggers = UE_ARRAY_COUNT(TriggerX);
 
@@ -854,8 +871,12 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// missed a landing and is drifting through the void, not progressing -
 	// without this, X can still cross every later segment's threshold while
 	// falling and produce a false "completed" outcome (happened for real:
-	// see kyokai-level02-toits-pluie memory).
-	if (Loc.Z < -500.f)
+	// see kyokai-level02-toits-pluie memory). Threshold is -800, well past
+	// AKyokaiCharacter's own real fall-catch/respawn-to-checkpoint at -600
+	// (step 6) - anything shallower than that is now the game's own job to
+	// recover from, not a bot failure; this only fires if that system
+	// somehow didn't catch it either.
+	if (Loc.Z < -800.f)
 	{
 		GetWorldTimerManager().ClearTimer(Level02TimingTickHandle);
 		Level02TimingEntries.Add(FString::Printf(
