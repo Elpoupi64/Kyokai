@@ -7,6 +7,8 @@
 #include "Onibi.generated.h"
 
 class UBoxComponent;
+class UMaterialInstanceDynamic;
+class UPointLightComponent;
 class USphereComponent;
 class UStaticMeshComponent;
 
@@ -62,6 +64,17 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Onibi")
 	TObjectPtr<UStaticMeshComponent> BodyMesh;
 
+	/**
+	 * "Décor artistique" pass, enemy visual polish (2026-08-31): a will-o-
+	 * wisp reads as inert without actually casting light, so this is a real
+	 * PointLight, not just an emissive surface - it lights up nearby
+	 * geometry, which a flat-shaded sphere alone can't do. Flickers via a
+	 * sine+noise blend in Tick() and intensifies through the telegraph/
+	 * charge states, same state-driven-tint idea as AWindGust/ALightningStrike.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Onibi")
+	TObjectPtr<UPointLightComponent> GlowLight;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Onibi")
 	TObjectPtr<UBoxComponent> HitBox;
 
@@ -80,10 +93,13 @@ private:
 	EOnibiState State = EOnibiState::Patrol;
 	float StateTimer = 0.0f;
 	float BobTime = 0.0f;
+	float FlickerTime = 0.0f;
 	FVector HomeLocation = FVector::ZeroVector;
 	float ChargeDirectionSign = 1.0f;
+	TObjectPtr<UMaterialInstanceDynamic> BodyMID;
 
 	void EnterState(EOnibiState NewState);
+	void UpdateGlow(float DeltaTime);
 
 	UFUNCTION()
 	void OnHitBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

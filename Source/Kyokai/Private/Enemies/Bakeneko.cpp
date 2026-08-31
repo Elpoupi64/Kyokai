@@ -6,6 +6,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
 
 ABakeneko::ABakeneko()
@@ -19,9 +20,50 @@ ABakeneko::ABakeneko()
 	BodyMesh->SetWorldScale3D(FVector(0.8f, 0.6f, 0.5f));
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeFinder(TEXT("/Engine/BasicShapes/Cube.Cube"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> SphereFinder(TEXT("/Engine/BasicShapes/Sphere.Sphere"));
 	if (CubeFinder.Succeeded())
 	{
 		BodyMesh->SetStaticMesh(CubeFinder.Object);
+	}
+
+	// Absolute scale/rotation on the head+eyes so they don't compound with
+	// BodyMesh's own (0.8,0.6,0.5) squash - want a readable head-sized
+	// silhouette, not a shape scaled by the body's own proportions.
+	HeadMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeadMesh"));
+	HeadMesh->SetupAttachment(BodyMesh);
+	HeadMesh->SetUsingAbsoluteScale(true);
+	HeadMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HeadMesh->SetMobility(EComponentMobility::Movable);
+	HeadMesh->SetRelativeLocation(FVector(62.0f, 0.0f, 40.0f));
+	HeadMesh->SetRelativeScale3D(FVector(0.32f));
+	if (CubeFinder.Succeeded())
+	{
+		HeadMesh->SetStaticMesh(CubeFinder.Object);
+	}
+
+	EyeLeft = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("EyeLeft"));
+	EyeLeft->SetupAttachment(HeadMesh);
+	EyeLeft->SetUsingAbsoluteScale(true);
+	EyeLeft->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	EyeLeft->SetMobility(EComponentMobility::Movable);
+	EyeLeft->SetRelativeLocation(FVector(30.0f, 20.0f, 5.0f));
+	EyeLeft->SetRelativeScale3D(FVector(0.08f));
+
+	EyeRight = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("EyeRight"));
+	EyeRight->SetupAttachment(HeadMesh);
+	EyeRight->SetUsingAbsoluteScale(true);
+	EyeRight->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	EyeRight->SetMobility(EComponentMobility::Movable);
+	EyeRight->SetRelativeLocation(FVector(30.0f, -20.0f, 5.0f));
+	EyeRight->SetRelativeScale3D(FVector(0.08f));
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> TelegraphMatFinder(TEXT("/Game/Materials/M_HazardTelegraph.M_HazardTelegraph"));
+	if (SphereFinder.Succeeded() && TelegraphMatFinder.Succeeded())
+	{
+		EyeLeft->SetStaticMesh(SphereFinder.Object);
+		EyeRight->SetStaticMesh(SphereFinder.Object);
+		EyeLeft->SetMaterial(0, TelegraphMatFinder.Object);
+		EyeRight->SetMaterial(0, TelegraphMatFinder.Object);
 	}
 
 	HitBox = CreateDefaultSubobject<UBoxComponent>(TEXT("HitBox"));
@@ -38,7 +80,16 @@ void ABakeneko::BeginPlay()
 {
 	Super::BeginPlay();
 	HomeLocation = GetActorLocation();
+
+	if (EyeLeft && EyeLeft->GetMaterial(0))
+	{
+		EyeMID = UMaterialInstanceDynamic::Create(EyeLeft->GetMaterial(0), this);
+		EyeLeft->SetMaterial(0, EyeMID);
+		EyeRight->SetMaterial(0, EyeMID);
+	}
+
 	EnterState(EBakenekoState::Idle);
+	UpdateEyeGlow();
 }
 
 void ABakeneko::EnterState(const EBakenekoState NewState)
@@ -48,6 +99,31 @@ void ABakeneko::EnterState(const EBakenekoState NewState)
 	bIsChasing = (NewState == EBakenekoState::Chasing);
 	bIsTelegraphingPounce = (NewState == EBakenekoState::Telegraphing);
 	bIsPouncing = (NewState == EBakenekoState::Pouncing);
+	UpdateEyeGlow();
+}
+
+void ABakeneko::UpdateEyeGlow()
+{
+	if (!EyeMID)
+	{
+		return;
+	}
+
+	// Dim amber at idle/chase - just enough to read as eyes in the dark -
+	// bright yellow-white through the telegraph, the actual warning cue.
+	const FLinearColor Tint = (State == EBakenekoState::Telegraphing || State == EBakenekoState::Pouncing)
+		? FLinearColor(3.0f, 2.6f, 0.8f)
+		: FLinearColor(0.8f, 0.65f, 0.1f);
+	EyeMID->SetVectorParameterValue(TEXT("TintColor"), Tint);
+}
+
+void ABakeneko::UpdateFacing(const float MoveSignX)
+{
+	if (FMath::IsNearlyZero(MoveSignX))
+	{
+		return;
+	}
+	SetActorRotation(FRotator(0.0f, MoveSignX > 0.0f ? 0.0f : 180.0f, 0.0f));
 }
 
 void ABakeneko::Tick(const float DeltaTime)
@@ -87,6 +163,7 @@ void ABakeneko::Tick(const float DeltaTime)
 			}
 
 			const float MoveSign = FMath::Sign(DistanceToPlayer);
+			UpdateFacing(MoveSign);
 			SetActorLocation(CurrentLocation + FVector(MoveSign * ChaseSpeed * DeltaTime, 0.0f, 0.0f));
 		}
 		break;
@@ -103,6 +180,7 @@ void ABakeneko::Tick(const float DeltaTime)
 			// this zone, meaning every pounce this way had been missing).
 			const float AimDistance = PlayerX - CurrentLocation.X;
 			PounceDirectionSign = (AimDistance >= 0.0f) ? 1.0f : -1.0f;
+			UpdateFacing(PounceDirectionSign);
 			EnterState(EBakenekoState::Pouncing);
 		}
 		break;
@@ -126,6 +204,7 @@ void ABakeneko::Tick(const float DeltaTime)
 			const float MoveSign = FMath::Sign(HomeLocation.X - CurrentLocation.X);
 			if (FMath::Abs(HomeLocation.X - CurrentLocation.X) > 5.0f)
 			{
+				UpdateFacing(MoveSign);
 				SetActorLocation(CurrentLocation + FVector(MoveSign * ChaseSpeed * DeltaTime, 0.0f, 0.0f));
 			}
 

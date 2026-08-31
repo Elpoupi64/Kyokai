@@ -7,6 +7,7 @@
 #include "Bakeneko.generated.h"
 
 class UBoxComponent;
+class UMaterialInstanceDynamic;
 class UStaticMeshComponent;
 
 /**
@@ -66,6 +67,23 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Bakeneko")
 	TObjectPtr<UStaticMeshComponent> BodyMesh;
 
+	/** A second, smaller box offset toward the front for a head silhouette - the flat squashed-cube body alone reads as a crate, not a creature. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Bakeneko")
+	TObjectPtr<UStaticMeshComponent> HeadMesh;
+
+	/**
+	 * "Décor artistique" pass, enemy visual polish (2026-08-31): glowing
+	 * eyes are the classic bakeneko/cat-yokai cue (a cat's eyes catching
+	 * light in the dark) - two small emissive spheres on the head, tinted
+	 * via the same dynamic-material-instance pattern as everywhere else in
+	 * this pass, brightening through telegraph/pounce.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Bakeneko")
+	TObjectPtr<UStaticMeshComponent> EyeLeft;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Bakeneko")
+	TObjectPtr<UStaticMeshComponent> EyeRight;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Bakeneko")
 	TObjectPtr<UBoxComponent> HitBox;
 
@@ -86,8 +104,11 @@ private:
 	float StateTimer = 0.0f;
 	FVector HomeLocation = FVector::ZeroVector;
 	float PounceDirectionSign = 1.0f;
+	TObjectPtr<UMaterialInstanceDynamic> EyeMID;
 
 	void EnterState(EBakenekoState NewState);
+	void UpdateEyeGlow();
+	void UpdateFacing(float MoveSignX);
 
 	UFUNCTION()
 	void OnHitBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

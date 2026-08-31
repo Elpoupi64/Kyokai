@@ -4,8 +4,10 @@
 
 #include "Characters/KyokaiCharacter.h"
 #include "Components/BoxComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
 
 AOnibi::AOnibi()
@@ -24,6 +26,19 @@ AOnibi::AOnibi()
 		BodyMesh->SetStaticMesh(SphereFinder.Object);
 	}
 
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> TelegraphMatFinder(TEXT("/Game/Materials/M_HazardTelegraph.M_HazardTelegraph"));
+	if (TelegraphMatFinder.Succeeded())
+	{
+		BodyMesh->SetMaterial(0, TelegraphMatFinder.Object);
+	}
+
+	GlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("GlowLight"));
+	GlowLight->SetupAttachment(BodyMesh);
+	GlowLight->SetLightColor(FLinearColor(0.6f, 0.75f, 0.9f));
+	GlowLight->SetIntensity(800.0f);
+	GlowLight->SetAttenuationRadius(400.0f);
+	GlowLight->SetCastShadows(false);
+
 	HitBox = CreateDefaultSubobject<UBoxComponent>(TEXT("HitBox"));
 	HitBox->SetupAttachment(BodyMesh);
 	HitBox->SetBoxExtent(FVector(50.0f, 50.0f, 50.0f));
@@ -38,6 +53,13 @@ void AOnibi::BeginPlay()
 {
 	Super::BeginPlay();
 	HomeLocation = GetActorLocation();
+
+	if (BodyMesh && BodyMesh->GetMaterial(0))
+	{
+		BodyMID = UMaterialInstanceDynamic::Create(BodyMesh->GetMaterial(0), this);
+		BodyMesh->SetMaterial(0, BodyMID);
+	}
+
 	EnterState(EOnibiState::Patrol);
 }
 
@@ -49,12 +71,46 @@ void AOnibi::EnterState(const EOnibiState NewState)
 	bIsCharging = (NewState == EOnibiState::Charging);
 }
 
+void AOnibi::UpdateGlow(const float DeltaTime)
+{
+	FlickerTime += DeltaTime;
+
+	// Base color/intensity by state, then a flicker (two mismatched sine
+	// frequencies, reads less mechanical than a single one) layered on top
+	// - a will-o-wisp shouldn't glow perfectly steady.
+	FLinearColor BaseColor(0.6f, 0.75f, 0.9f);
+	float BaseIntensity = 800.0f;
+	if (State == EOnibiState::Telegraphing)
+	{
+		BaseColor = FLinearColor(1.0f, 0.9f, 0.4f);
+		BaseIntensity = 1400.0f;
+	}
+	else if (State == EOnibiState::Charging)
+	{
+		BaseColor = FLinearColor(1.0f, 0.6f, 0.2f);
+		BaseIntensity = 2200.0f;
+	}
+
+	const float Flicker = 0.85f + 0.15f * (FMath::Sin(FlickerTime * 11.0f) * 0.6f + FMath::Sin(FlickerTime * 23.0f) * 0.4f);
+
+	if (GlowLight)
+	{
+		GlowLight->SetLightColor(BaseColor);
+		GlowLight->SetIntensity(BaseIntensity * Flicker);
+	}
+	if (BodyMID)
+	{
+		BodyMID->SetVectorParameterValue(TEXT("TintColor"), BaseColor * Flicker);
+	}
+}
+
 void AOnibi::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	StateTimer += DeltaTime;
 	BobTime += DeltaTime;
+	UpdateGlow(DeltaTime);
 
 	const FVector CurrentLocation = GetActorLocation();
 	const float Bob = FMath::Sin(BobTime * BobSpeed) * BobAmplitude;
