@@ -7,14 +7,18 @@
 #include "LightningStrike.generated.h"
 
 class UBoxComponent;
+class UMaterialInstanceDynamic;
+class UStaticMeshComponent;
 
 /**
  * "Éclairs avec télégraphie claire avant impact" (Level 02 obstacle brief,
  * Segment 6 "Paratonnerres et éclairs rythmés" - "lecture des dangers").
  * Cycles Cooldown -> Telegraphing -> strike (instantaneous) -> Cooldown.
- * bIsTelegraphing is BlueprintReadOnly for an art pass to drive a warning
- * cue off later; the read-the-danger test is the telegraph window itself,
- * not this class's job to visualize yet.
+ * bIsTelegraphing is BlueprintReadOnly for further visual polish later;
+ * a tinted marker mesh (see VisualMesh below) already exists as of the
+ * 2026-08-31 "décor artistique" pass - before that the actor had zero
+ * visual representation at all, a real gap against the brief's own
+ * "télégraphie claire" wording, not just a cosmetic one.
  *
  * CONSEQUENCE: a strike respawns the character at the last checkpoint
  * (AKyokaiCharacter::RespawnAtCheckpoint()) - a real cost, matching the
@@ -46,6 +50,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Lightning")
 	TObjectPtr<UBoxComponent> StrikeVolume;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Lightning")
+	TObjectPtr<UStaticMeshComponent> VisualMesh;
+
+	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 
 private:
@@ -57,7 +65,10 @@ private:
 
 	EStrikeState State = EStrikeState::Cooldown;
 	float StateTimer = 0.0f;
+	TObjectPtr<UMaterialInstanceDynamic> VisualMID;
+	float FlashTimer = 0.0f;
 
 	void EnterState(EStrikeState NewState);
 	void ExecuteStrike();
+	void UpdateVisualTint();
 };

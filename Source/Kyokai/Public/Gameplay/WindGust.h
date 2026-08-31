@@ -7,6 +7,8 @@
 #include "WindGust.generated.h"
 
 class UBoxComponent;
+class UMaterialInstanceDynamic;
+class UStaticMeshComponent;
 
 /**
  * "Rafales de vent annoncées visuellement" (Level 02 obstacle brief). Cycles
@@ -66,6 +68,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Wind")
 	TObjectPtr<UBoxComponent> GustVolume;
 
+	/**
+	 * "Décor artistique" pass (2026-08-31): before this, the actor had no
+	 * visible representation at all - just an invisible collision volume,
+	 * which is a real gap against the brief's own "annoncées visuellement"
+	 * requirement, not just a cosmetic nicety. A thin marker slab, tinted
+	 * by state via a dynamic material instance - programmer-art placeholder
+	 * for whatever VFX (Niagara wind streaks per the GDD's tech list, not
+	 * built) eventually replaces it.
+	 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Kyokai|Wind")
+	TObjectPtr<UStaticMeshComponent> VisualMesh;
+
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 
@@ -79,6 +93,8 @@ private:
 
 	EGustState State = EGustState::Cooldown;
 	float StateTimer = 0.0f;
+	TObjectPtr<UMaterialInstanceDynamic> VisualMID;
 
 	void EnterState(EGustState NewState);
+	void UpdateVisualTint();
 };
