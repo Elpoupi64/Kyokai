@@ -30,3 +30,7 @@
 *.zip filter=lfs diff=lfs merge=lfs -text
 *.rar filter=lfs diff=lfs merge=lfs -text
 *.7z filter=lfs diff=lfs merge=lfs -text
+
+# Design docs (GDD, briefs) - binary, not diffable as text
+*.docx filter=lfs diff=lfs merge=lfs -text
+*.pdf filter=lfs diff=lfs merge=lfs -text
