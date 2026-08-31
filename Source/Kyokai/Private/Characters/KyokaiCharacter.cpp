@@ -85,10 +85,11 @@ void AKyokaiCharacter::BeginPlay()
 	}
 }
 
-void AKyokaiCharacter::RespawnAtCheckpoint()
+void AKyokaiCharacter::RespawnAtCheckpoint(const FString& Cause)
 {
-	if (const AKyokaiGameMode* GameMode = GetWorld()->GetAuthGameMode<AKyokaiGameMode>())
+	if (AKyokaiGameMode* GameMode = GetWorld()->GetAuthGameMode<AKyokaiGameMode>())
 	{
+		GameMode->NotifyPlayerDeath(Cause, GetActorLocation());
 		SetActorLocation(GameMode->GetRespawnLocation(), false, nullptr, ETeleportType::TeleportPhysics);
 		if (UKyokaiMovementComponent* Movement = GetKyokaiMovement())
 		{
@@ -128,7 +129,7 @@ void AKyokaiCharacter::Tick(const float DeltaSeconds)
 	// designed drop.
 	if (GetActorLocation().Z < -600.0f)
 	{
-		RespawnAtCheckpoint();
+		RespawnAtCheckpoint(TEXT("fall"));
 	}
 
 	if (bShowPrototypeDebug)

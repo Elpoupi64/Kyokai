@@ -37,6 +37,6 @@ protected:
 	/** Nearest AKyokaiCharacter in the world, or nullptr if none exists - there's only ever one player, so this is a simple actor-iterator, not a spatial query. */
 	AKyokaiCharacter* FindPlayerCharacter() const;
 
-	/** Respawns Character at the last checkpoint - see the class comment above. */
-	void ApplyContactConsequence(AKyokaiCharacter* Character) const;
+	/** Respawns Character at the last checkpoint - see the class comment above. Cause is a short identifier ("onibi", "bakeneko", ...) for the playtest death-cause tally, see AKyokaiCharacter::RespawnAtCheckpoint(). */
+	void ApplyContactConsequence(AKyokaiCharacter* Character, const FString& Cause) const;
 };

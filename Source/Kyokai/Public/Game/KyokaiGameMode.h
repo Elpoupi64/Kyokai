@@ -26,11 +26,48 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Kyokai|Checkpoint")
 	FVector GetRespawnLocation() const { return RespawnLocation; }
 
+	/** Called by AKyokaiCharacter::RespawnAtCheckpoint() before it teleports - logs a "death" playtest event tagged with what caused it (build-order step 7 instrumentation). */
+	void NotifyPlayerDeath(const FString& Cause, const FVector& Location);
+
+	/** Called by AFinishLine when the player reaches it. */
+	void NotifyLevelCompleted();
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
 	FVector RespawnLocation = FVector::ZeroVector;
+
+	/**
+	 * Playtest instrumentation for build-order step 7 ("tester avec cinq
+	 * joueurs") - since real human testers aren't something this session
+	 * can run itself, this captures the data the level brief's own
+	 * acceptance criteria need (completion time, per-obstacle death counts,
+	 * checkpoint usage, FPS, expert-route usage) whenever a real person
+	 * actually plays. Always active during genuine play - unlike the
+	 * -Kyokai* test harnesses above, a tester shouldn't need a command-line
+	 * flag to be logged. Skips itself automatically when any of those
+	 * harnesses' own flags are set, so bot runs don't pollute playtest
+	 * data (see IsAutomatedTestRun()).
+	 *
+	 * Written as JSONL (one JSON object per line), appended to disk on
+	 * every event rather than buffered to one end-of-run write like the
+	 * bot reports - a real session can be interrupted (crash, alt-F4,
+	 * tester just walks away) and losing that data would defeat the point.
+	 */
+	bool IsAutomatedTestRun() const;
+	void StartPlaytestLogging();
+	void LogPlaytestEvent(const FString& EventJson);
+	void SamplePlaytestFpsAndExpertRoute();
+
+	FString PlaytestLogPath;
+	float PlaytestStartTime = 0.0f;
+	float PlaytestMinFps = 0.0f;
+	bool bPlaytestActive = false;
+	bool bPlaytestLevelCompleted = false;
+	bool bPlaytestExpertRouteUsed = false;
+	FTimerHandle PlaytestSampleHandle;
 
 	/**
 	 * Optional headless functional check for the fallback keyboard bindings

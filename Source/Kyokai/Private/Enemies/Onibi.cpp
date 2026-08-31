@@ -136,6 +136,6 @@ void AOnibi::OnHitBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor* O
 		return;
 	}
 
-	ApplyContactConsequence(Character);
+	ApplyContactConsequence(Character, TEXT("onibi"));
 	EnterState(EOnibiState::Cooldown);
 }

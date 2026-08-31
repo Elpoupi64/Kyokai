@@ -58,7 +58,7 @@ void ALightningStrike::ExecuteStrike()
 	{
 		if (AKyokaiCharacter* Character = Cast<AKyokaiCharacter>(Actor))
 		{
-			Character->RespawnAtCheckpoint();
+			Character->RespawnAtCheckpoint(TEXT("lightning"));
 		}
 	}
 }

@@ -57,9 +57,15 @@ public:
 	 * Tick() and by hazard contact (lightning, enemies) - see
 	 * AKyokaiEnemyBase's header for why hazards use this instead of a
 	 * knockback now that a real checkpoint system exists.
+	 *
+	 * Cause is reported to AKyokaiGameMode::NotifyPlayerDeath() before
+	 * teleporting, for the build-order step 7 playtest instrumentation
+	 * (the brief's own acceptance criterion "no single obstacle causes
+	 * more than 20% of failures" needs a per-cause tally) - pass a short
+	 * identifier ("fall", "lightning", "onibi", "bakeneko", ...).
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Kyokai|Checkpoint")
-	void RespawnAtCheckpoint();
+	void RespawnAtCheckpoint(const FString& Cause = TEXT("unknown"));
 
 protected:
 	virtual void BeginPlay() override;

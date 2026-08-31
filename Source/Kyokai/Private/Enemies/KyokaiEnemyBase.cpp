@@ -16,10 +16,10 @@ AKyokaiCharacter* AKyokaiEnemyBase::FindPlayerCharacter() const
 	return Cast<AKyokaiCharacter>(PlayerPawn);
 }
 
-void AKyokaiEnemyBase::ApplyContactConsequence(AKyokaiCharacter* Character) const
+void AKyokaiEnemyBase::ApplyContactConsequence(AKyokaiCharacter* Character, const FString& Cause) const
 {
 	if (Character)
 	{
-		Character->RespawnAtCheckpoint();
+		Character->RespawnAtCheckpoint(Cause);
 	}
 }

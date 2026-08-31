@@ -152,6 +152,6 @@ void ABakeneko::OnHitBoxOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 		return;
 	}
 
-	ApplyContactConsequence(Character);
+	ApplyContactConsequence(Character, TEXT("bakeneko"));
 	EnterState(EBakenekoState::Cooldown);
 }

@@ -51,11 +51,135 @@ void AKyokaiGameMode::BeginPlay()
 	TryStartDropTest();
 	TryStartLevel02Timing();
 	TryStartExpertRouteTest();
+	StartPlaytestLogging();
+}
+
+void AKyokaiGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (bPlaytestActive && !bPlaytestLevelCompleted)
+	{
+		const float Elapsed = GetWorld() ? GetWorld()->GetTimeSeconds() - PlaytestStartTime : 0.0f;
+		LogPlaytestEvent(FString::Printf(
+			TEXT("{\"event\": \"session_end_incomplete\", \"elapsed_s\": %.2f}"), Elapsed));
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AKyokaiGameMode::NotifyCheckpointActivated(const FVector& Location)
 {
 	RespawnLocation = Location;
+
+	if (bPlaytestActive)
+	{
+		const float Elapsed = GetWorld()->GetTimeSeconds() - PlaytestStartTime;
+		LogPlaytestEvent(FString::Printf(
+			TEXT("{\"event\": \"checkpoint_activated\", \"elapsed_s\": %.2f, \"location_x\": %.2f}"),
+			Elapsed, Location.X));
+	}
+}
+
+void AKyokaiGameMode::NotifyPlayerDeath(const FString& Cause, const FVector& Location)
+{
+	if (bPlaytestActive)
+	{
+		const float Elapsed = GetWorld()->GetTimeSeconds() - PlaytestStartTime;
+		LogPlaytestEvent(FString::Printf(
+			TEXT("{\"event\": \"death\", \"cause\": \"%s\", \"elapsed_s\": %.2f, \"location_x\": %.2f, \"location_z\": %.2f}"),
+			*Cause, Elapsed, Location.X, Location.Z));
+	}
+}
+
+void AKyokaiGameMode::NotifyLevelCompleted()
+{
+	if (bPlaytestActive && !bPlaytestLevelCompleted)
+	{
+		bPlaytestLevelCompleted = true;
+		const float Elapsed = GetWorld()->GetTimeSeconds() - PlaytestStartTime;
+		LogPlaytestEvent(FString::Printf(
+			TEXT("{\"event\": \"level_completed\", \"total_time_s\": %.2f}"), Elapsed));
+		GetWorldTimerManager().ClearTimer(PlaytestSampleHandle);
+	}
+}
+
+bool AKyokaiGameMode::IsAutomatedTestRun() const
+{
+	return FParse::Param(FCommandLine::Get(), TEXT("KyokaiInputSmokeTest"))
+		|| FParse::Param(FCommandLine::Get(), TEXT("KyokaiWallJumpTest"))
+		|| FParse::Param(FCommandLine::Get(), TEXT("KyokaiBounceTest"))
+		|| FParse::Param(FCommandLine::Get(), TEXT("KyokaiDropTest"))
+		|| FParse::Param(FCommandLine::Get(), TEXT("KyokaiLevel02Timing"))
+		|| FParse::Param(FCommandLine::Get(), TEXT("KyokaiExpertRouteTest"));
+}
+
+void AKyokaiGameMode::StartPlaytestLogging()
+{
+	if (IsAutomatedTestRun())
+	{
+		return;
+	}
+
+	bPlaytestActive = true;
+	bPlaytestLevelCompleted = false;
+	bPlaytestExpertRouteUsed = false;
+	PlaytestStartTime = GetWorld()->GetTimeSeconds();
+	PlaytestMinFps = 0.0f;
+
+	const FString SessionId = FDateTime::Now().ToString(TEXT("%Y%m%d_%H%M%S"));
+	PlaytestLogPath = FPaths::ProjectSavedDir() / TEXT("Playtests") / FString::Printf(TEXT("Playtest_%s.jsonl"), *SessionId);
+
+	LogPlaytestEvent(FString::Printf(TEXT("{\"event\": \"session_start\", \"session_id\": \"%s\"}"), *SessionId));
+
+	GetWorldTimerManager().SetTimer(PlaytestSampleHandle, this, &AKyokaiGameMode::SamplePlaytestFpsAndExpertRoute, 2.0f, true);
+}
+
+void AKyokaiGameMode::LogPlaytestEvent(const FString& EventJson)
+{
+	if (PlaytestLogPath.IsEmpty())
+	{
+		return;
+	}
+	FFileHelper::SaveStringToFile(EventJson + LINE_TERMINATOR, *PlaytestLogPath,
+		FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), FILEWRITE_Append);
+}
+
+void AKyokaiGameMode::SamplePlaytestFpsAndExpertRoute()
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const float DeltaSeconds = World->GetDeltaSeconds();
+	const float Fps = DeltaSeconds > 0.0f ? 1.0f / DeltaSeconds : 0.0f;
+	if (PlaytestMinFps <= 0.0f || Fps < PlaytestMinFps)
+	{
+		PlaytestMinFps = Fps;
+	}
+
+	const float Elapsed = World->GetTimeSeconds() - PlaytestStartTime;
+	LogPlaytestEvent(FString::Printf(
+		TEXT("{\"event\": \"fps_sample\", \"elapsed_s\": %.2f, \"fps\": %.1f, \"min_fps_so_far\": %.1f}"),
+		Elapsed, Fps, PlaytestMinFps));
+
+	if (!bPlaytestExpertRouteUsed)
+	{
+		const APlayerController* PC = World->GetFirstPlayerController();
+		const AKyokaiCharacter* Character = PC ? Cast<AKyokaiCharacter>(PC->GetPawn()) : nullptr;
+		if (Character)
+		{
+			const FVector Loc = Character->GetActorLocation();
+			// Expert_Seg3_Upper: x=8380-9150, top=430 (origin z=528.15 when
+			// standing on it) - well above the main path's ~248 there.
+			if (Loc.X >= 8380.f && Loc.X <= 9150.f && Loc.Z > 500.f)
+			{
+				bPlaytestExpertRouteUsed = true;
+				LogPlaytestEvent(FString::Printf(
+					TEXT("{\"event\": \"expert_route_used\", \"elapsed_s\": %.2f}"), Elapsed));
+			}
+		}
+	}
 }
 
 void AKyokaiGameMode::TryStartInputSmokeTest()
@@ -999,14 +1123,14 @@ void AKyokaiGameMode::TickLevel02Timing()
 			TEXT("{\"segment\": \"%s\", \"elapsed_s\": %.2f, \"location_x\": %.2f, \"location_z\": %.2f}"),
 			SegmentNames[Level02TimingNextSegment], Elapsed, Loc.X, Loc.Z));
 		++Level02TimingNextSegment;
+	}
 
-		if (Level02TimingNextSegment >= NumSegments)
-		{
-			GetWorldTimerManager().ClearTimer(Level02TimingTickHandle);
-			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
-			FinishLevel02Timing(TEXT("completed"));
-			return;
-		}
+	if (Level02TimingNextSegment >= NumSegments)
+	{
+		GetWorldTimerManager().ClearTimer(Level02TimingTickHandle);
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
+		FinishLevel02Timing(TEXT("completed"));
+		return;
 	}
 
 	static float LastDebugLogTime = -1000.0f;
