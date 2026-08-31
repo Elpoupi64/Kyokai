@@ -777,12 +777,19 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// run-to-run (the wall-jump shaft's climb isn't precise), so a jump-
 	// precision gap right after it was fragile by construction, not a
 	// simple mistimed trigger like the others.
+	// 7750 (removed): used for a manual jump across the old plain 350cm
+	// Sign_Seg3_2 -> Sign_Seg3_3 gap. That gap is now bridged by
+	// BouncePad_Seg3_Sign2 (step 4 "enseignes servant de rebonds") - the
+	// character just runs into its overlap trigger and gets launched
+	// automatically, no jump input needed. A stray jump right at the pad's
+	// position risks clipping its solid mesh sideways (the same "too close
+	// to the pad's face" issue documented for BouncePad_Seg2 earlier).
 	static const float TriggerX[] = {
-		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6150.f, 7350.f, 7750.f,
+		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6150.f, 7350.f,
 		9200.f, 11350.f, 12470.f, 14600.f, 15800.f, 16610.f, 16700.f, 17570.f
 	};
 	static const int32 TriggerType[] = {
-		0, 0, 0, 1, 2, 0, 0, 0,
+		0, 0, 0, 1, 2, 0, 0,
 		0, 0, 0, 0, 1, 3, 2, 0
 	};
 	static const int32 NumTriggers = UE_ARRAY_COUNT(TriggerX);
