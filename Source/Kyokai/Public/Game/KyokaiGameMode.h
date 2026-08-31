@@ -147,4 +147,27 @@ private:
 	float Level02TimingLastShaftPress = -1000.0f;
 	bool bLevel02TimingSliding = false;
 	bool bLevel02TimingDHeld = true;
+
+	/**
+	 * Level 02 build-order step 6 "route experte": a scoped first pass -
+	 * one elevated alternate platform above Segment 3's signs (per the
+	 * brief's "au-dessus des enseignes"), not the full level length yet.
+	 * Enabled only with -KyokaiExpertRouteTest: teleports the pawn onto
+	 * Roof_Seg2_BigLanding already running, fires one jump tap to reach
+	 * Expert_Seg3_Upper, and checks it lands there and can run its length
+	 * back down onto the main path. Writes Saved/ExpertRouteTest.json.
+	 */
+	void TryStartExpertRouteTest();
+	void PollForPawnThenRunExpertRouteTest();
+	void TickExpertRouteTest();
+	void FinishExpertRouteTest(const FString& Outcome);
+
+	FTimerHandle ExpertRouteTestPollHandle;
+	FTimerHandle ExpertRouteTestTickHandle;
+	TWeakObjectPtr<AKyokaiCharacter> ExpertRouteTestCharacter;
+	TWeakObjectPtr<APlayerController> ExpertRouteTestController;
+	TArray<FString> ExpertRouteTestEntries;
+	int32 ExpertRouteTestPollAttempts = 0;
+	float ExpertRouteTestStartTime = 0.0f;
+	bool bExpertRouteJumpFired = false;
 };

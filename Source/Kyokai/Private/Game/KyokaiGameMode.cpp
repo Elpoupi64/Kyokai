@@ -48,6 +48,7 @@ void AKyokaiGameMode::BeginPlay()
 	TryStartBounceTest();
 	TryStartDropTest();
 	TryStartLevel02Timing();
+	TryStartExpertRouteTest();
 }
 
 void AKyokaiGameMode::NotifyCheckpointActivated(const FVector& Location)
@@ -965,6 +966,132 @@ void AKyokaiGameMode::FinishInputSmokeTest(const FString& Outcome)
 	Json += TEXT("  ]\n}\n");
 
 	const FString OutPath = FPaths::ProjectSavedDir() / TEXT("InputSmokeTest.json");
+	FFileHelper::SaveStringToFile(Json, *OutPath);
+
+	FGenericPlatformMisc::RequestExit(false);
+}
+
+void AKyokaiGameMode::TryStartExpertRouteTest()
+{
+	if (!FParse::Param(FCommandLine::Get(), TEXT("KyokaiExpertRouteTest")))
+	{
+		return;
+	}
+
+	ExpertRouteTestEntries.Reset();
+	ExpertRouteTestPollAttempts = 0;
+	GetWorldTimerManager().SetTimer(
+		ExpertRouteTestPollHandle, this, &AKyokaiGameMode::PollForPawnThenRunExpertRouteTest, 0.2f, true);
+}
+
+void AKyokaiGameMode::PollForPawnThenRunExpertRouteTest()
+{
+	++ExpertRouteTestPollAttempts;
+
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	AKyokaiCharacter* Character = PC ? Cast<AKyokaiCharacter>(PC->GetPawn()) : nullptr;
+
+	if (!Character && ExpertRouteTestPollAttempts < 25) // ~5s at 0.2s intervals
+	{
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(ExpertRouteTestPollHandle);
+
+	if (!Character)
+	{
+		FinishExpertRouteTest(TEXT("no pawn possessed within timeout"));
+		return;
+	}
+
+	ExpertRouteTestController = PC;
+	ExpertRouteTestCharacter = Character;
+
+	// Sign_Seg3_3 (7950-8350, top=150) already running toward the jump
+	// point - the entry jump itself (see Expert_Seg3_Upper's spawn
+	// comment) is timed from x=8050, so start a bit before that.
+	Character->SetActorLocation(FVector(7950.0f, 0.0f, 248.15f), false, nullptr, ETeleportType::TeleportPhysics);
+	Character->GetKyokaiMovement()->StopMovementImmediately();
+
+	ExpertRouteTestStartTime = GetWorld()->GetTimeSeconds();
+	bExpertRouteJumpFired = false;
+	PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
+	ExpertRouteTestEntries.Add(TEXT("{\"step\": \"run_started\"}"));
+
+	GetWorldTimerManager().SetTimer(ExpertRouteTestTickHandle, this, &AKyokaiGameMode::TickExpertRouteTest, 0.05f, true);
+}
+
+void AKyokaiGameMode::TickExpertRouteTest()
+{
+	APlayerController* PC = ExpertRouteTestController.Get();
+	AKyokaiCharacter* Character = ExpertRouteTestCharacter.Get();
+	if (!PC || !Character)
+	{
+		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
+		FinishExpertRouteTest(TEXT("pawn or controller became invalid mid-test"));
+		return;
+	}
+
+	const float Elapsed = GetWorld()->GetTimeSeconds() - ExpertRouteTestStartTime;
+	const FVector Loc = Character->GetActorLocation();
+
+	if (!bExpertRouteJumpFired && Loc.X >= 8050.f)
+	{
+		bExpertRouteJumpFired = true;
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"jump_fired\"}"));
+	}
+
+	static float LastDebugLogTime = -1000.0f;
+	if (Elapsed - LastDebugLogTime >= 0.1f)
+	{
+		LastDebugLogTime = Elapsed;
+		ExpertRouteTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"debug_trace\", \"elapsed_s\": %.2f, \"location_x\": %.2f, \"location_z\": %.2f, \"is_grounded\": %s}"),
+			Elapsed, Loc.X, Loc.Z,
+			Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround() ? TEXT("true") : TEXT("false")));
+	}
+
+	if (Loc.Z < -800.f)
+	{
+		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
+		FinishExpertRouteTest(TEXT("fell through the level"));
+		return;
+	}
+
+	// Success: back down onto the main path (Roof_Seg3_Landing, 8950-9300,
+	// top=150 - directly below Expert_Seg3_Upper's far end at 9150),
+	// grounded.
+	if (Loc.X >= 9160.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	{
+		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
+		FinishExpertRouteTest(TEXT("completed"));
+		return;
+	}
+
+	if (Elapsed > 15.f)
+	{
+		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
+		FinishExpertRouteTest(TEXT("timeout - likely stuck or fell through"));
+	}
+}
+
+void AKyokaiGameMode::FinishExpertRouteTest(const FString& Outcome)
+{
+	FString Json = TEXT("{\n  \"outcome\": \"");
+	Json += Outcome;
+	Json += TEXT("\",\n  \"steps\": [\n");
+	for (int32 Index = 0; Index < ExpertRouteTestEntries.Num(); ++Index)
+	{
+		Json += TEXT("    ");
+		Json += ExpertRouteTestEntries[Index];
+		Json += (Index + 1 < ExpertRouteTestEntries.Num()) ? TEXT(",\n") : TEXT("\n");
+	}
+	Json += TEXT("  ]\n}\n");
+
+	const FString OutPath = FPaths::ProjectSavedDir() / TEXT("ExpertRouteTest.json");
 	FFileHelper::SaveStringToFile(Json, *OutPath);
 
 	FGenericPlatformMisc::RequestExit(false);
