@@ -40,7 +40,8 @@ ACheckpoint::ACheckpoint()
 void ACheckpoint::OnActivationOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (bIsActivated || !Cast<AKyokaiCharacter>(OtherActor))
+	AKyokaiCharacter* Character = Cast<AKyokaiCharacter>(OtherActor);
+	if (bIsActivated || !Character)
 	{
 		return;
 	}
@@ -49,6 +50,21 @@ void ACheckpoint::OnActivationOverlap(UPrimitiveComponent* OverlappedComponent, 
 
 	if (AKyokaiGameMode* GameMode = GetWorld()->GetAuthGameMode<AKyokaiGameMode>())
 	{
-		GameMode->NotifyCheckpointActivated(GetActorLocation());
+		// The PLAYER's own location, not GetActorLocation() (this actor's
+		// own transform) - Marker's pivot sits at its visual center, ~200cm
+		// above the walkway (matches its half-height, see the constructor),
+		// not the ~98cm a standing character's origin actually sits at. A
+		// checkpoint respawn using this actor's own transform drops the
+		// character ~100cm above the floor every time - harmless on its
+		// own (falls, lands, continues), but real bug found once enough
+		// lightning-triggered respawns hit Checkpoint_3 specifically to
+		// expose it: the extra fall time let the character cross the
+		// Segment 7 slide-start check (x=15800) still airborne, missing
+		// the slide and ramming Ceiling_Seg7_Tunnel's face standing tall -
+		// same failure shape as the wall-jump-shaft-variance case fixed
+		// earlier, different root cause. The player is already standing
+		// correctly on the ground the moment they touch the checkpoint, so
+		// their own location is the correct one to remember.
+		GameMode->NotifyCheckpointActivated(Character->GetActorLocation());
 	}
 }
