@@ -12,16 +12,33 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "TimerManager.h"
+#include "UObject/ConstructorHelpers.h"
 
 AKyokaiGameMode::AKyokaiGameMode()
 {
-	DefaultPawnClass = AKyokaiCharacter::StaticClass();
+	// Prefer BP_AikoPrototype (child of AKyokaiCharacter) so movement/jump/
+	// slide/dash values are tunable from the Blueprint's Class Defaults
+	// without recompiling - falls back to the raw C++ class if the
+	// Blueprint hasn't been created yet (e.g. a fresh checkout).
+	static ConstructorHelpers::FClassFinder<AKyokaiCharacter> AikoPrototypeFinder(
+		TEXT("/Game/Blueprints/Characters/BP_AikoPrototype"));
+	if (AikoPrototypeFinder.Succeeded())
+	{
+		DefaultPawnClass = AikoPrototypeFinder.Class;
+	}
+	else
+	{
+		DefaultPawnClass = AKyokaiCharacter::StaticClass();
+	}
 }
 
 void AKyokaiGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 	TryStartInputSmokeTest();
+	TryStartWallJumpTest();
+	TryStartBounceTest();
+	TryStartDropTest();
 }
 
 void AKyokaiGameMode::TryStartInputSmokeTest()
@@ -232,6 +249,427 @@ void AKyokaiGameMode::RunSmokeTestStep(const int32 StepIndex)
 		FTimerDelegate::CreateUObject(this, &AKyokaiGameMode::RunSmokeTestStep, StepIndex + 1),
 		NextDelay,
 		false);
+}
+
+void AKyokaiGameMode::TryStartWallJumpTest()
+{
+	if (!FParse::Param(FCommandLine::Get(), TEXT("KyokaiWallJumpTest")))
+	{
+		return;
+	}
+
+	WallJumpTestEntries.Reset();
+	WallJumpTestPollAttempts = 0;
+	GetWorldTimerManager().SetTimer(
+		WallJumpTestPollHandle, this, &AKyokaiGameMode::PollForPawnThenRunWallJumpTest, 0.2f, true);
+}
+
+void AKyokaiGameMode::PollForPawnThenRunWallJumpTest()
+{
+	++WallJumpTestPollAttempts;
+
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	AKyokaiCharacter* Character = PC ? Cast<AKyokaiCharacter>(PC->GetPawn()) : nullptr;
+
+	if (!Character && WallJumpTestPollAttempts < 25) // ~5s at 0.2s intervals
+	{
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(WallJumpTestPollHandle);
+
+	if (!Character)
+	{
+		FinishWallJumpTest(TEXT("no pawn possessed within timeout"));
+		return;
+	}
+
+	WallJumpTestController = PC;
+	WallJumpTestCharacter = Character;
+	RunWallJumpTestStep(0);
+}
+
+void AKyokaiGameMode::RunWallJumpTestStep(const int32 StepIndex)
+{
+	APlayerController* PC = WallJumpTestController.Get();
+	AKyokaiCharacter* Character = WallJumpTestCharacter.Get();
+	if (!PC || !Character)
+	{
+		FinishWallJumpTest(TEXT("pawn or controller became invalid mid-test"));
+		return;
+	}
+
+	UKyokaiMovementComponent* Movement = Character->GetKyokaiMovement();
+	float NextDelay = 0.1f;
+
+	// L_ControllerGym Zone 6a: Wall_Zone6_Left spans X=9150-9250, interior
+	// gap up to X=9410 (Wall_Zone6_Right). Teleporting next to the left wall
+	// instead of walking a scripted character in from the course avoids the
+	// generic InputSmokeTest's problem here: the shaft interior has no
+	// floor, so a character that starts falling from anywhere else reaches
+	// the bottom (800cm down) well before a fixed step sequence gets to
+	// pressing jump.
+	// Wall_Zone6_Left's interior face is at X=9250; capsule radius is 42cm,
+	// so the capsule must start at X>=9292 to not spawn embedded in the
+	// wall (the first version of this test started at 9270 - inside the
+	// wall by 22cm - and the resulting depenetration push, not a real wall
+	// jump, was what got measured for the first jump).
+	constexpr float StartX = 9300.0f;
+	constexpr float StartZ = 200.0f;
+
+	switch (StepIndex)
+	{
+	case 0:
+		Character->SetActorLocation(FVector(StartX, 0.0f, StartZ), false, nullptr, ETeleportType::TeleportPhysics);
+		if (Movement)
+		{
+			Movement->Velocity = FVector::ZeroVector;
+			Movement->SetMovementMode(MOVE_Falling);
+		}
+		WallJumpTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"teleported\", \"location_x\": %.2f, \"location_z\": %.2f}"), StartX, StartZ));
+		// Long enough for UpdateWallDetection to register the wall AND for
+		// coyote time to expire from whatever ground contact happened right
+		// before this teleport (e.g. the moment the pawn was first
+		// possessed at its real PlayerStart) - otherwise the first jump
+		// legitimately (and correctly) takes the coyote-time path instead
+		// of the wall-jump path this test wants to exercise.
+		NextDelay = 0.3f;
+		break;
+
+	case 1:
+		WallJumpTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"before_1st_jump\", \"is_touching_wall\": %s, \"location_x\": %.2f}"),
+			Character->IsTouchingWall() ? TEXT("true") : TEXT("false"), Character->GetActorLocation().X));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		NextDelay = 0.05f;
+		break;
+
+	case 2:
+		WallJumpTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"after_1st_jump\", \"velocity_x\": %.2f, \"velocity_z\": %.2f}"),
+			Character->GetVelocity().X, Character->GetVelocity().Z));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		NextDelay = 0.15f; // 160cm gap at ~800cm/s horizontal - enough time to reach the right wall
+		break;
+
+	case 3:
+		WallJumpTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"before_2nd_jump\", \"is_touching_wall\": %s, \"location_x\": %.2f, \"location_z\": %.2f}"),
+			Character->IsTouchingWall() ? TEXT("true") : TEXT("false"),
+			Character->GetActorLocation().X, Character->GetActorLocation().Z));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		NextDelay = 0.05f;
+		break;
+
+	case 4:
+		WallJumpTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"after_2nd_jump\", \"velocity_x\": %.2f, \"velocity_z\": %.2f}"),
+			Character->GetVelocity().X, Character->GetVelocity().Z));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		NextDelay = 0.15f;
+		break;
+
+	case 5:
+		WallJumpTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"final\", \"location_x\": %.2f, \"location_z\": %.2f, \"net_climb_z\": %.2f}"),
+			Character->GetActorLocation().X, Character->GetActorLocation().Z,
+			Character->GetActorLocation().Z - StartZ));
+		FinishWallJumpTest(TEXT("completed"));
+		return;
+
+	default:
+		FinishWallJumpTest(TEXT("completed"));
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(
+		WallJumpTestStepHandle,
+		FTimerDelegate::CreateUObject(this, &AKyokaiGameMode::RunWallJumpTestStep, StepIndex + 1),
+		NextDelay,
+		false);
+}
+
+void AKyokaiGameMode::FinishWallJumpTest(const FString& Outcome)
+{
+	FString Json = TEXT("{\n  \"outcome\": \"");
+	Json += Outcome;
+	Json += TEXT("\",\n  \"steps\": [\n");
+	for (int32 Index = 0; Index < WallJumpTestEntries.Num(); ++Index)
+	{
+		Json += TEXT("    ");
+		Json += WallJumpTestEntries[Index];
+		Json += (Index + 1 < WallJumpTestEntries.Num()) ? TEXT(",\n") : TEXT("\n");
+	}
+	Json += TEXT("  ]\n}\n");
+
+	const FString OutPath = FPaths::ProjectSavedDir() / TEXT("WallJumpSmokeTest.json");
+	FFileHelper::SaveStringToFile(Json, *OutPath);
+
+	FGenericPlatformMisc::RequestExit(false);
+}
+
+void AKyokaiGameMode::TryStartBounceTest()
+{
+	if (!FParse::Param(FCommandLine::Get(), TEXT("KyokaiBounceTest")))
+	{
+		return;
+	}
+
+	BounceTestEntries.Reset();
+	BounceTestPollAttempts = 0;
+	GetWorldTimerManager().SetTimer(
+		BounceTestPollHandle, this, &AKyokaiGameMode::PollForPawnThenRunBounceTest, 0.2f, true);
+}
+
+void AKyokaiGameMode::PollForPawnThenRunBounceTest()
+{
+	++BounceTestPollAttempts;
+
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	AKyokaiCharacter* Character = PC ? Cast<AKyokaiCharacter>(PC->GetPawn()) : nullptr;
+
+	if (!Character && BounceTestPollAttempts < 25) // ~5s at 0.2s intervals
+	{
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(BounceTestPollHandle);
+
+	if (!Character)
+	{
+		FinishBounceTest(TEXT("no pawn possessed within timeout"));
+		return;
+	}
+
+	BounceTestCharacter = Character;
+	RunBounceTestStep(0);
+}
+
+void AKyokaiGameMode::RunBounceTestStep(const int32 StepIndex)
+{
+	AKyokaiCharacter* Character = BounceTestCharacter.Get();
+	if (!Character)
+	{
+		FinishBounceTest(TEXT("pawn became invalid mid-test"));
+		return;
+	}
+
+	float NextDelay = 0.2f;
+
+	// BouncePad_Zone6 is centered at X=10210 (200cm diameter after 2x
+	// scale); its overlap trigger sits at world Z=600 (pad base Z=500,
+	// +50cm unscaled half-height to the top, +50cm more to the trigger's
+	// own local offset). Dropping from Z=900 gives ~300cm of real fall
+	// (~0.5s at this project's 2352cm/s^2 effective gravity) before it
+	// should land on the trigger.
+	constexpr float PadX = 10210.0f;
+	constexpr float DropStartZ = 900.0f;
+
+	switch (StepIndex)
+	{
+	case 0:
+		Character->SetActorLocation(FVector(PadX, 0.0f, DropStartZ), false, nullptr, ETeleportType::TeleportPhysics);
+		if (UKyokaiMovementComponent* Movement = Character->GetKyokaiMovement())
+		{
+			Movement->Velocity = FVector::ZeroVector;
+			Movement->SetMovementMode(MOVE_Falling);
+		}
+		BounceTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"teleported\", \"location_x\": %.2f, \"location_z\": %.2f}"), PadX, DropStartZ));
+		NextDelay = 0.6f; // past the expected ~0.5s fall to the pad
+		break;
+
+	case 1:
+		BounceTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"just_after_bounce\", \"velocity_z\": %.2f, \"location_z\": %.2f}"),
+			Character->GetVelocity().Z, Character->GetActorLocation().Z));
+		NextDelay = 0.2f;
+		break;
+
+	case 2:
+		// A second, later reading: still clearly ascending (not just a
+		// one-frame velocity blip that gravity already erased) confirms
+		// this was a real launch, not a fluke.
+		BounceTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"still_ascending\", \"velocity_z\": %.2f, \"location_z\": %.2f}"),
+			Character->GetVelocity().Z, Character->GetActorLocation().Z));
+		FinishBounceTest(TEXT("completed"));
+		return;
+
+	default:
+		FinishBounceTest(TEXT("completed"));
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(
+		BounceTestStepHandle,
+		FTimerDelegate::CreateUObject(this, &AKyokaiGameMode::RunBounceTestStep, StepIndex + 1),
+		NextDelay,
+		false);
+}
+
+void AKyokaiGameMode::FinishBounceTest(const FString& Outcome)
+{
+	FString Json = TEXT("{\n  \"outcome\": \"");
+	Json += Outcome;
+	Json += TEXT("\",\n  \"steps\": [\n");
+	for (int32 Index = 0; Index < BounceTestEntries.Num(); ++Index)
+	{
+		Json += TEXT("    ");
+		Json += BounceTestEntries[Index];
+		Json += (Index + 1 < BounceTestEntries.Num()) ? TEXT(",\n") : TEXT("\n");
+	}
+	Json += TEXT("  ]\n}\n");
+
+	const FString OutPath = FPaths::ProjectSavedDir() / TEXT("BounceSmokeTest.json");
+	FFileHelper::SaveStringToFile(Json, *OutPath);
+
+	FGenericPlatformMisc::RequestExit(false);
+}
+
+void AKyokaiGameMode::TryStartDropTest()
+{
+	if (!FParse::Param(FCommandLine::Get(), TEXT("KyokaiDropTest")))
+	{
+		return;
+	}
+
+	DropTestEntries.Reset();
+	DropTestPollAttempts = 0;
+	GetWorldTimerManager().SetTimer(DropTestPollHandle, this, &AKyokaiGameMode::PollForPawnThenRunDropTest, 0.2f, true);
+}
+
+void AKyokaiGameMode::PollForPawnThenRunDropTest()
+{
+	++DropTestPollAttempts;
+
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	AKyokaiCharacter* Character = PC ? Cast<AKyokaiCharacter>(PC->GetPawn()) : nullptr;
+
+	if (!Character && DropTestPollAttempts < 25) // ~5s at 0.2s intervals
+	{
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(DropTestPollHandle);
+
+	if (!Character)
+	{
+		FinishDropTest(TEXT("no pawn possessed within timeout"));
+		return;
+	}
+
+	DropTestController = PC;
+	DropTestCharacter = Character;
+	RunDropTestStep(0);
+}
+
+void AKyokaiGameMode::RunDropTestStep(const int32 StepIndex)
+{
+	APlayerController* PC = DropTestController.Get();
+	AKyokaiCharacter* Character = DropTestCharacter.Get();
+	if (!PC || !Character)
+	{
+		FinishDropTest(TEXT("pawn or controller became invalid mid-test"));
+		return;
+	}
+
+	UKyokaiMovementComponent* Movement = Character->GetKyokaiMovement();
+	float NextDelay = 0.1f;
+
+	// Drop C (the hardest of the three): Platform_Zone7_LedgeC ends at
+	// X=14110, top Z=-250. Teleporting 10cm past the edge, already
+	// falling, isolates "does the drop itself require a dash" from
+	// "did the character actually run off the edge cleanly", which isn't
+	// what this test is checking. Landing C starts at X=15010, top Z=-1050
+	// (standing height -954).
+	constexpr float StartX = 14120.0f;
+	constexpr float StartZ = -154.0f; // ledge top (-250) + capsule half-height (96)
+	constexpr float LandingX = 15010.0f;
+	constexpr float LandingStandZ = -954.0f; // landing top (-1050) + capsule half-height (96)
+
+	switch (StepIndex)
+	{
+	case 0:
+		Character->SetActorLocation(FVector(StartX, 0.0f, StartZ), false, nullptr, ETeleportType::TeleportPhysics);
+		if (Movement)
+		{
+			Movement->Velocity = FVector(850.0f, 0.0f, 0.0f);
+			Movement->SetMovementMode(MOVE_Falling);
+		}
+		DropTestEntries.Add(TEXT("{\"step\": \"no_dash_attempt_started\"}"));
+		NextDelay = 1.0f; // past the ~0.82s expected fall time for an 800cm drop
+		break;
+
+	case 1:
+	{
+		const FVector NoDashResult = Character->GetActorLocation();
+		const bool bNoDashReachedLanding = NoDashResult.X >= LandingX && NoDashResult.Z >= LandingStandZ - 50.0f;
+		DropTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"no_dash_result\", \"location_x\": %.2f, \"location_z\": %.2f, \"reached_landing\": %s}"),
+			NoDashResult.X, NoDashResult.Z, bNoDashReachedLanding ? TEXT("true") : TEXT("false")));
+
+		Character->SetActorLocation(FVector(StartX, 0.0f, StartZ), false, nullptr, ETeleportType::TeleportPhysics);
+		if (Movement)
+		{
+			Movement->Velocity = FVector(850.0f, 0.0f, 0.0f);
+			Movement->SetMovementMode(MOVE_Falling);
+		}
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftShift, IE_Pressed, 1.0f));
+		DropTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"dash_pressed\", \"location_z\": %.2f, \"velocity_z\": %.2f}"),
+			Character->GetActorLocation().Z, Character->GetVelocity().Z));
+		NextDelay = 0.1f;
+		break;
+	}
+
+	// Sample every 0.1s (same reasoning as the earlier gap test): a single
+	// fixed-time snapshot conflates "traveled far enough in X" with
+	// "actually at landing height when it got there".
+	case 2: case 3: case 4: case 5: case 6: case 7: case 8: case 9: case 10: case 11: case 12:
+		DropTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"dash_trajectory\", \"t\": %d, \"location_x\": %.2f, \"location_z\": %.2f}"),
+			StepIndex - 1, Character->GetActorLocation().X, Character->GetActorLocation().Z));
+		NextDelay = 0.1f;
+		break;
+
+	case 13:
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftShift, IE_Released, 0.0f));
+		FinishDropTest(TEXT("completed"));
+		return;
+
+	default:
+		FinishDropTest(TEXT("completed"));
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(
+		DropTestStepHandle,
+		FTimerDelegate::CreateUObject(this, &AKyokaiGameMode::RunDropTestStep, StepIndex + 1),
+		NextDelay,
+		false);
+}
+
+void AKyokaiGameMode::FinishDropTest(const FString& Outcome)
+{
+	FString Json = TEXT("{\n  \"outcome\": \"");
+	Json += Outcome;
+	Json += TEXT("\",\n  \"steps\": [\n");
+	for (int32 Index = 0; Index < DropTestEntries.Num(); ++Index)
+	{
+		Json += TEXT("    ");
+		Json += DropTestEntries[Index];
+		Json += (Index + 1 < DropTestEntries.Num()) ? TEXT(",\n") : TEXT("\n");
+	}
+	Json += TEXT("  ]\n}\n");
+
+	const FString OutPath = FPaths::ProjectSavedDir() / TEXT("DropSmokeTest.json");
+	FFileHelper::SaveStringToFile(Json, *OutPath);
+
+	FGenericPlatformMisc::RequestExit(false);
 }
 
 void AKyokaiGameMode::FinishInputSmokeTest(const FString& Outcome)

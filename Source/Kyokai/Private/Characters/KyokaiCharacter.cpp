@@ -4,6 +4,7 @@
 
 #include "Camera/CameraComponent.h"
 #include "Characters/KyokaiMovementComponent.h"
+#include "CollisionQueryParams.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
@@ -105,6 +106,7 @@ void AKyokaiCharacter::Tick(const float DeltaSeconds)
 
 	TryConsumeJumpBuffer();
 	UpdateCameraLookAhead(DeltaSeconds);
+	UpdateWallDetection();
 
 	if (bShowPrototypeDebug)
 	{
@@ -153,17 +155,29 @@ void AKyokaiCharacter::Landed(const FHitResult& Hit)
 
 bool AKyokaiCharacter::CanJumpInternal_Implementation() const
 {
-	if (Super::CanJumpInternal_Implementation())
+	const UKyokaiMovementComponent* Movement = GetKyokaiMovement();
+	if (Movement && Movement->IsMovingOnGround())
 	{
-		return true;
+		return Super::CanJumpInternal_Implementation();
 	}
 
-	const UKyokaiMovementComponent* Movement = GetKyokaiMovement();
-	if (!Movement || !Movement->IsFalling() || JumpCurrentCount >= JumpMaxCount)
+	if (!Movement || !Movement->IsFalling())
 	{
 		return false;
 	}
 
+	// Deliberately NOT going through Super() (or checking JumpCurrentCount)
+	// here: ACharacter's own "first jump while already falling, with
+	// JumpCurrentCount==0 < JumpMaxCount" special case looks like exactly
+	// what coyote time wants, but it isn't reliable - UCharacterMovementComponent
+	// re-checks CanJump() a second time inside DoJump() itself, by which
+	// point CheckJumpInput() has already bumped JumpCurrentCount to 1, so a
+	// JumpCurrentCount-gated check here flips to false between the two
+	// calls: the jump attempt gets "consumed" (counter incremented) but
+	// DoJump() bails before ever touching Velocity.Z, so nothing actually
+	// happens. Gating purely on elapsed time since grounded sidesteps this
+	// entirely, since that stays true across both calls within the same
+	// frame.
 	return GetWorld()->GetTimeSeconds() - LastGroundedTime <= CoyoteTime;
 }
 
@@ -230,6 +244,11 @@ void AKyokaiCharacter::TryConsumeJumpBuffer()
 	if (CanJump())
 	{
 		Jump();
+		bJumpBuffered = false;
+	}
+	else if (bIsTouchingWall)
+	{
+		PerformWallJump();
 		bJumpBuffered = false;
 	}
 }
@@ -306,6 +325,54 @@ void AKyokaiCharacter::StopDash()
 	}
 }
 
+void AKyokaiCharacter::UpdateWallDetection()
+{
+	bIsTouchingWall = false;
+	WallPushDirection = 0.0f;
+
+	const UKyokaiMovementComponent* Movement = GetKyokaiMovement();
+	if (!Movement || Movement->IsMovingOnGround() || bIsDashing)
+	{
+		return;
+	}
+
+	const FVector Origin = GetActorLocation();
+	const float TraceLength = GetCapsuleComponent()->GetScaledCapsuleRadius() + WallCheckDistance;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(WallJumpCheck), false, this);
+
+	for (const float Direction : {-1.0f, 1.0f})
+	{
+		FHitResult Hit;
+		const FVector End = Origin + FVector(Direction * TraceLength, 0.0f, 0.0f);
+		if (GetWorld()->LineTraceSingleByChannel(Hit, Origin, End, ECC_Visibility, QueryParams))
+		{
+			bIsTouchingWall = true;
+			WallPushDirection = -Direction; // launch away from whichever side the wall is on
+			break;
+		}
+	}
+}
+
+void AKyokaiCharacter::PerformWallJump()
+{
+	UKyokaiMovementComponent* Movement = GetKyokaiMovement();
+	if (!Movement || FMath::IsNearlyZero(WallPushDirection))
+	{
+		return;
+	}
+
+	FacingDirection = WallPushDirection;
+	SetActorRotation(FRotator(0.0f, FacingDirection > 0.0f ? 0.0f : 180.0f, 0.0f));
+
+	Movement->SetMovementMode(MOVE_Falling);
+	Movement->Velocity = FVector(WallPushDirection * WallJumpHorizontalVelocity, 0.0f, WallJumpZVelocity);
+
+	// Detach immediately so the very next tick's trace (still close to the
+	// wall we just pushed off) doesn't re-trigger the same wall jump.
+	bIsTouchingWall = false;
+	WallPushDirection = 0.0f;
+}
+
 void AKyokaiCharacter::TogglePrototypeDebug()
 {
 	bShowPrototypeDebug = !bShowPrototypeDebug;
@@ -333,6 +400,7 @@ void AKyokaiCharacter::DrawPrototypeDebug() const
 
 	const UKyokaiMovementComponent* Movement = GetKyokaiMovement();
 	const FString MovementState = bIsDashing ? TEXT("DASH") : bIsSliding ? TEXT("SLIDE") :
+		bIsTouchingWall ? TEXT("WALL") :
 		Movement && Movement->IsMovingOnGround() ? TEXT("GROUND") : TEXT("AIR");
 	const FString DebugText = FString::Printf(
 		TEXT("KYOKAI CONTROLLER | State: %s | Speed: %.0f | Z: %.0f | Input: %.2f | Air dash: %s"),

@@ -43,4 +43,66 @@ private:
 	TArray<FString> SmokeTestEntries;
 	FVector SmokeTestRefLocation = FVector::ZeroVector;
 	int32 SmokeTestPollAttempts = 0;
+
+	/**
+	 * Dedicated wall-jump check for the L_ControllerGym shaft (Zone 6a).
+	 * Enabled only with -KyokaiWallJumpTest: teleports the pawn to a
+	 * controlled spot next to Wall_Zone6_Left instead of relying on the
+	 * generic smoke test's fixed multi-step choreography to happen to line
+	 * up with being near a wall (it doesn't - the shaft has no floor and
+	 * free-falls past it well before the generic test presses jump). Writes
+	 * Saved/WallJumpSmokeTest.json.
+	 */
+	void TryStartWallJumpTest();
+	void PollForPawnThenRunWallJumpTest();
+	void RunWallJumpTestStep(int32 StepIndex);
+	void FinishWallJumpTest(const FString& Outcome);
+
+	FTimerHandle WallJumpTestPollHandle;
+	FTimerHandle WallJumpTestStepHandle;
+	TWeakObjectPtr<AKyokaiCharacter> WallJumpTestCharacter;
+	TWeakObjectPtr<APlayerController> WallJumpTestController;
+	TArray<FString> WallJumpTestEntries;
+	int32 WallJumpTestPollAttempts = 0;
+
+	/**
+	 * Dedicated bounce-pad check for BouncePad_Zone6. Enabled only with
+	 * -KyokaiBounceTest: teleports the pawn above the pad and lets it fall
+	 * onto the overlap trigger, then samples velocity twice afterward to
+	 * confirm it's a real sustained upward launch (not, say, a one-frame
+	 * blip that gravity immediately erases). Writes Saved/BounceSmokeTest.json.
+	 */
+	void TryStartBounceTest();
+	void PollForPawnThenRunBounceTest();
+	void RunBounceTestStep(int32 StepIndex);
+	void FinishBounceTest(const FString& Outcome);
+
+	FTimerHandle BounceTestPollHandle;
+	FTimerHandle BounceTestStepHandle;
+	TWeakObjectPtr<AKyokaiCharacter> BounceTestCharacter;
+	TArray<FString> BounceTestEntries;
+	int32 BounceTestPollAttempts = 0;
+
+	/**
+	 * Dedicated Zone 7 drop-crossing check (Zone 7 was redesigned around
+	 * drops rather than flat gaps after -KyokaiGapTest showed a plain held
+	 * jump outperforms jump+dash on a flat same-height crossing here - see
+	 * kyokai-prototype-state memory for the full story). Enabled only with
+	 * -KyokaiDropTest: teleports the pawn just past Ledge C's edge (the
+	 * hardest of the three drops) already falling, and tries it two ways -
+	 * no dash, then (after resetting) dashing immediately on leaving the
+	 * ledge - to confirm the drop is real airtime a plain fall can't cross
+	 * but an immediate dash can. Writes Saved/DropSmokeTest.json.
+	 */
+	void TryStartDropTest();
+	void PollForPawnThenRunDropTest();
+	void RunDropTestStep(int32 StepIndex);
+	void FinishDropTest(const FString& Outcome);
+
+	FTimerHandle DropTestPollHandle;
+	FTimerHandle DropTestStepHandle;
+	TWeakObjectPtr<AKyokaiCharacter> DropTestCharacter;
+	TWeakObjectPtr<APlayerController> DropTestController;
+	TArray<FString> DropTestEntries;
+	int32 DropTestPollAttempts = 0;
 };

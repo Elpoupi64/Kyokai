@@ -47,6 +47,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Kyokai|Debug")
 	bool IsPrototypeDebugVisible() const { return bShowPrototypeDebug; }
 
+	UFUNCTION(BlueprintPure, Category = "Kyokai|Movement")
+	bool IsTouchingWall() const { return bIsTouchingWall; }
+
 protected:
 	virtual void BeginPlay() override;
 	virtual bool CanJumpInternal_Implementation() const override;
@@ -109,6 +112,20 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Camera", meta = (ClampMin = "0.0"))
 	float CameraLookAheadSpeed = 7.0f;
 
+	/**
+	 * Distance beyond the capsule radius the side wall-check traces reach -
+	 * how close a wall has to be, while airborne, to count as "touching" it
+	 * for a wall jump.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Movement|WallJump", meta = (ClampMin = "0.0"))
+	float WallCheckDistance = 60.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Movement|WallJump", meta = (ClampMin = "0.0"))
+	float WallJumpZVelocity = 1100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Movement|WallJump", meta = (ClampMin = "0.0"))
+	float WallJumpHorizontalVelocity = 800.0f;
+
 private:
 	void MoveEnhanced(const FInputActionValue& Value);
 	void MoveLegacy(float Value);
@@ -122,6 +139,8 @@ private:
 	void TogglePrototypeDebug();
 	void TryConsumeJumpBuffer();
 	void UpdateCameraLookAhead(float DeltaSeconds);
+	void UpdateWallDetection();
+	void PerformWallJump();
 	void DrawPrototypeDebug() const;
 
 	float LastGroundedTime = -1000.0f;
@@ -129,11 +148,13 @@ private:
 	float LastDashTime = -1000.0f;
 	float MoveInput = 0.0f;
 	float FacingDirection = 1.0f;
+	float WallPushDirection = 0.0f;
 	bool bJumpBuffered = false;
 	bool bIsSliding = false;
 	bool bIsDashing = false;
 	bool bAirDashAvailable = true;
 	bool bShowPrototypeDebug = true;
+	bool bIsTouchingWall = false;
 
 	FTimerHandle DashTimerHandle;
 };
