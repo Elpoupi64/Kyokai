@@ -136,4 +136,5 @@ private:
 	int32 Level02TimingNextSegment = 0;
 	float Level02TimingLastShaftPress = -1000.0f;
 	bool bLevel02TimingSliding = false;
+	bool bLevel02TimingDHeld = true;
 };

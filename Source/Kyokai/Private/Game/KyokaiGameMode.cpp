@@ -751,18 +751,33 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// first - already learned the hard way on the controller gym's Zone 7
 	// (see kyokai-prototype-state memory) - only dashing once already
 	// falling gets the height needed to clear the drop.
-	// The Segment 2 bounce pad (BouncePad_Seg2, X=6350, radius 65cm after
-	// scale) is a solid mesh, not a pass-through trigger volume - a jump
-	// timed too close to its near face (6285) just runs into its side wall
-	// and stops dead, same as hitting any other wall. Jumping well before
-	// it (6150, 135cm of margin) arcs onto/over it instead.
+	// Segments 2-3 used to have two BouncePad-driven elevation gains here;
+	// both produced arcs that overshot their landing platforms (a bounce's
+	// horizontal carry is much harder to predict than a plain jump's - the
+	// character was still ~340 units above the intended 150-unit landing
+	// height when passing directly over the platform, per a traced run in
+	// Saved/Level02TimingReport.json, and only came back down to that
+	// height around x=7036, well past the platform's original 6450-6850
+	// span). Replaced both pads with plain jump-tap climbs onto much wider
+	// landing platforms (Roof_Seg2_BigLanding, Roof_Seg3_BigLanding) sized
+	// from the actual jump arc (v=1250, g=2352 => lands ~x=7036 and ~x=10037
+	// respectively, both with 400cm+ margin to either edge). Plain jumps are
+	// the proven-reliable mechanism here - Segment 1's own ~300cm elevation
+	// gain (x=1970) already matches this same model to within ~4%.
+	// 11670 (originally, pre-dating this level's debugging) fired 220cm past
+	// Roof_Seg4_Arena's actual edge (11450) - the character was already
+	// falling for 220cm before the jump input landed. Moved to 11350
+	// (100cm before the edge), matching every other working trigger's margin.
+	// 14600 (new): Roof_Seg6_A ends at 14700, Roof_Seg6_B starts at 15000 -
+	// a 300cm gap with no trigger at all in the original table (a genuine
+	// gap in coverage, not a mistimed one like the others above).
 	static const float TriggerX[] = {
-		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6200.f, 6820.f, 7320.f, 7820.f,
-		9270.f, 11670.f, 12470.f, 15470.f, 15800.f, 16610.f, 16700.f, 17570.f
+		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6150.f, 7350.f, 7750.f,
+		9200.f, 11350.f, 12470.f, 14600.f, 15470.f, 15800.f, 16610.f, 16700.f, 17570.f
 	};
 	static const int32 TriggerType[] = {
-		0, 0, 0, 1, 2, 0, 0, 0, 0,
-		0, 0, 0, 0, 1, 3, 2, 0
+		0, 0, 0, 1, 2, 0, 0, 0,
+		0, 0, 0, 0, 0, 1, 3, 2, 0
 	};
 	static const int32 NumTriggers = UE_ARRAY_COUNT(TriggerX);
 
@@ -796,11 +811,45 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// below the exit height - PerformWallJump() only fires as a fallback
 	// when CanJump() is false and a wall is touched, so spamming this is
 	// safe outside the shaft too, but it's scoped here anyway for clarity.
+	// PerformWallJump() sets Velocity.X outright (WallPushDirection *
+	// WallJumpHorizontalVelocity) - holding D the whole time fights that with
+	// continuous forward AddMovementInput, dragging the character straight
+	// through the 260cm interior gap in ~0.3s instead of letting it bounce
+	// wall-to-wall and actually climb. Release D for the climb itself, and
+	// resume holding it once past the shaft (or once high enough to have
+	// cleared it) so normal running resumes afterward.
+	const bool bInShaft = Loc.X >= 12600.f && Loc.X <= 13060.f && Loc.Z < 1150.f;
+	if (bInShaft && bLevel02TimingDHeld)
+	{
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
+		bLevel02TimingDHeld = false;
+	}
+	else if (!bInShaft && !bLevel02TimingDHeld)
+	{
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
+		bLevel02TimingDHeld = true;
+	}
+
 	if (Loc.X >= 12600.f && Loc.X <= 12860.f && Loc.Z < 1150.f && Elapsed - Level02TimingLastShaftPress >= 0.25f)
 	{
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
 		Level02TimingLastShaftPress = Elapsed;
+	}
+
+	// Sanity check: freefall past the level's floor means the character
+	// missed a landing and is drifting through the void, not progressing -
+	// without this, X can still cross every later segment's threshold while
+	// falling and produce a false "completed" outcome (happened for real:
+	// see kyokai-level02-toits-pluie memory).
+	if (Loc.Z < -500.f)
+	{
+		GetWorldTimerManager().ClearTimer(Level02TimingTickHandle);
+		Level02TimingEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"fell_through\", \"elapsed_s\": %.2f, \"location_x\": %.2f, \"location_z\": %.2f, \"next_segment_index\": %d}"),
+			Elapsed, Loc.X, Loc.Z, Level02TimingNextSegment));
+		FinishLevel02Timing(TEXT("fell through the level"));
+		return;
 	}
 
 	// Segment splits - X thresholds match each SegmentMarker_N_End platform.
