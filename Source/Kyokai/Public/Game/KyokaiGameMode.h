@@ -145,6 +145,8 @@ private:
 	int32 Level02TimingNextTrigger = 0;
 	int32 Level02TimingNextSegment = 0;
 	float Level02TimingLastShaftPress = -1000.0f;
+	float Level02TimingLastDodgeJump = -1000.0f;
+	float Level02TimingLastX = 0.0f;
 	bool bLevel02TimingSliding = false;
 	bool bLevel02TimingDHeld = true;
 

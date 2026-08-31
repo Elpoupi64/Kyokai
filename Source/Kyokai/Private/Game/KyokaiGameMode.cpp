@@ -4,6 +4,8 @@
 
 #include "Characters/KyokaiCharacter.h"
 #include "Characters/KyokaiMovementComponent.h"
+#include "Enemies/Bakeneko.h"
+#include "Enemies/Onibi.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerStart.h"
 #include "HAL/PlatformMisc.h"
@@ -726,6 +728,8 @@ void AKyokaiGameMode::PollForPawnThenRunLevel02Timing()
 	Level02TimingNextTrigger = 0;
 	Level02TimingNextSegment = 0;
 	Level02TimingLastShaftPress = -1000.0f;
+	Level02TimingLastDodgeJump = -1000.0f;
+	Level02TimingLastX = 0.0f;
 	bLevel02TimingSliding = false;
 
 	PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
@@ -747,6 +751,17 @@ void AKyokaiGameMode::TickLevel02Timing()
 
 	const float Elapsed = GetWorld()->GetTimeSeconds() - Level02TimingStartTime;
 	const FVector Loc = Character->GetActorLocation();
+
+	// Checkpoint/fall-catch respawn detection: X drops sharply (far more
+	// than one tick's normal movement, ~42cm at 850cm/s * 0.05s) means the
+	// character just got teleported back, not that it walked backward.
+	// Level02TimingNextTrigger/NextSegment are monotonic counters that
+	// would otherwise never re-fire for anything before the respawn point,
+	// stranding the bot - confirmed: without this resync, a hazard/fall
+	// respawn left it stuck for the full 90s timeout every time once real
+	// checkpoint consequences replaced the old knockback-only stopgap.
+	const bool bJustRespawned = (Level02TimingLastX - Loc.X) > 200.f;
+	Level02TimingLastX = Loc.X;
 
 	// One-shot reactive triggers, in ascending X order - computed from this
 	// level's own build coordinates (see kyokai-level02-toits-pluie memory).
@@ -802,15 +817,34 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// automatically, no jump input needed. A stray jump right at the pad's
 	// position risks clipping its solid mesh sideways (the same "too close
 	// to the pad's face" issue documented for BouncePad_Seg2 earlier).
+	// 15800 slide-start (removed from this fixed-X array, handled below as
+	// a grounded-reactive check instead): OnSlidePressed() silently no-ops
+	// if !IsMovingOnGround(), and the wall-jump shaft's climb variance can
+	// leave the character still airborne when X crosses 15800 (confirmed:
+	// one run was still falling from an overshoot to Z=1487 at this point)
+	// - the slide press was discarded, and the character later landed
+	// standing tall and rammed Ceiling_Seg7_Tunnel's face at x=16158,
+	// stuck for the rest of the run. A third distinct downstream failure
+	// mode from the same shaft variance (after the two gap-merges already
+	// fixed), this time breaking a precondition rather than just position.
 	static const float TriggerX[] = {
 		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6150.f, 7350.f,
-		9200.f, 11350.f, 12470.f, 15800.f, 16610.f, 16700.f, 17570.f
+		9200.f, 11350.f, 12470.f, 16610.f, 16700.f, 17570.f
 	};
 	static const int32 TriggerType[] = {
 		0, 0, 0, 1, 2, 0, 0,
-		0, 0, 0, 1, 3, 2, 0
+		0, 0, 0, 3, 2, 0
 	};
 	static const int32 NumTriggers = UE_ARRAY_COUNT(TriggerX);
+
+	if (bJustRespawned)
+	{
+		Level02TimingNextTrigger = 0;
+		while (Level02TimingNextTrigger < NumTriggers && Loc.X >= TriggerX[Level02TimingNextTrigger])
+		{
+			++Level02TimingNextTrigger;
+		}
+	}
 
 	while (Level02TimingNextTrigger < NumTriggers && Loc.X >= TriggerX[Level02TimingNextTrigger])
 	{
@@ -838,6 +872,42 @@ void AKyokaiGameMode::TickLevel02Timing()
 		++Level02TimingNextTrigger;
 	}
 
+	// Defensive dodge: Onibi/Bakeneko now respawn the character on contact
+	// (a real checkpoint cost - see kyokai-level02-toits-pluie memory on
+	// reworking the old knockback-only stopgap), so a bot that never reacts
+	// gets stuck looping forever at the first one it can't avoid (confirmed:
+	// without this, the run just cycled Checkpoint_1 <-> Onibi's charge for
+	// the whole 90s timeout).
+	// Reacts to the TELEGRAPH, not the attack itself - a first attempt
+	// jumping on bIsCharging/bIsPouncing still looped forever. Onibi's
+	// charge (1400cm/s) closes on a still-approaching player (850cm/s) at
+	// up to 2250cm/s combined, and by the time telegraph ends the gap is
+	// already small (well under 400cm here) - under 0.1s to impact, far
+	// less than one InputKey() dispatch cycle. Jumping the moment the
+	// telegraph *starts* instead uses the full 0.8s/0.5s warning window as
+	// intended: still airborne and well above the hitbox height when the
+	// attack actually launches (checked: a jump from Onibi's arena height
+	// is still ~247cm up at t=0.8s, comfortably above its 420-520 hitbox).
+	if (Elapsed - Level02TimingLastDodgeJump >= 0.3f)
+	{
+		bool bShouldDodge = false;
+		if (const AOnibi* Onibi = Cast<AOnibi>(UGameplayStatics::GetActorOfClass(this, AOnibi::StaticClass())))
+		{
+			bShouldDodge |= Onibi->bIsTelegraphingCharge;
+		}
+		if (const ABakeneko* Bakeneko = Cast<ABakeneko>(UGameplayStatics::GetActorOfClass(this, ABakeneko::StaticClass())))
+		{
+			bShouldDodge |= Bakeneko->bIsTelegraphingPounce;
+		}
+
+		if (bShouldDodge)
+		{
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+			Level02TimingLastDodgeJump = Elapsed;
+		}
+	}
+
 	// Wall-jump shaft (Segment 5, X=12600-12860): periodic jump taps while
 	// below the exit height - PerformWallJump() only fires as a fallback
 	// when CanJump() is false and a wall is touched, so spamming this is
@@ -861,7 +931,26 @@ void AKyokaiGameMode::TickLevel02Timing()
 		bLevel02TimingDHeld = true;
 	}
 
-	if (Loc.X >= 12600.f && Loc.X <= 12860.f && Loc.Z < 1150.f && Elapsed - Level02TimingLastShaftPress >= 0.25f)
+	// Slide-start for the Segment 7 tunnel (see the removed-15800 comment
+	// above) - reacts to grounded state instead of a fixed X, so it still
+	// fires correctly even if the character is still airborne (wall-jump
+	// shaft overshoot) when it first crosses this X.
+	if (!bLevel02TimingSliding && Loc.X >= 15800.f && Loc.X <= 16150.f
+		&& Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	{
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftControl, IE_Pressed, 1.0f));
+		bLevel02TimingSliding = true;
+	}
+
+	// Z<1050 (was <1150): a naive bot that keeps tapping until fully clear
+	// of the exit height has no judgment about "high enough" the way a
+	// real player would - one run overshot to Z=1487 (vs. the ~1150-1600
+	// range seen before) and slammed face-on into Ceiling_Seg7_Tunnel's
+	// near side while still descending from that height at x=16158, a new
+	// failure mode distinct from the two gap-merges already fixed for this
+	// shaft's variance. Stopping the spam earlier reduces how many bounces
+	// can accumulate within the shaft's brief ~0.3-0.5s crossing window.
+	if (Loc.X >= 12600.f && Loc.X <= 12860.f && Loc.Z < 1050.f && Elapsed - Level02TimingLastShaftPress >= 0.25f)
 	{
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
@@ -894,6 +983,15 @@ void AKyokaiGameMode::TickLevel02Timing()
 		TEXT("Seg4_Onibi"), TEXT("Seg5_Gouttieres"), TEXT("Seg6_Paratonnerres"), TEXT("Seg7_Finish")
 	};
 	static const int32 NumSegments = UE_ARRAY_COUNT(SegmentEndX);
+
+	if (bJustRespawned)
+	{
+		Level02TimingNextSegment = 0;
+		while (Level02TimingNextSegment < NumSegments && Loc.X >= SegmentEndX[Level02TimingNextSegment])
+		{
+			++Level02TimingNextSegment;
+		}
+	}
 
 	while (Level02TimingNextSegment < NumSegments && Loc.X >= SegmentEndX[Level02TimingNextSegment])
 	{

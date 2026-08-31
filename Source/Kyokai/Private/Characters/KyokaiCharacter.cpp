@@ -85,6 +85,18 @@ void AKyokaiCharacter::BeginPlay()
 	}
 }
 
+void AKyokaiCharacter::RespawnAtCheckpoint()
+{
+	if (const AKyokaiGameMode* GameMode = GetWorld()->GetAuthGameMode<AKyokaiGameMode>())
+	{
+		SetActorLocation(GameMode->GetRespawnLocation(), false, nullptr, ETeleportType::TeleportPhysics);
+		if (UKyokaiMovementComponent* Movement = GetKyokaiMovement())
+		{
+			Movement->StopMovementImmediately();
+		}
+	}
+}
+
 void AKyokaiCharacter::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -113,18 +125,10 @@ void AKyokaiCharacter::Tick(const float DeltaSeconds)
 	// (top=0, the lowest of any Segment 1/2 platform - confirmed by
 	// querying every StaticMeshActor's Z), so this only fires once the
 	// player has genuinely fallen off the world, not during a legitimate
-	// designed drop. Sends them back to the last checkpoint reached
-	// (AKyokaiGameMode::GetRespawnLocation(), which falls back to the
-	// level's PlayerStart if none has been activated yet) - this is the
-	// checkpoint system's actual gameplay purpose, not just "touch and
-	// light up".
+	// designed drop.
 	if (GetActorLocation().Z < -600.0f)
 	{
-		if (const AKyokaiGameMode* GameMode = GetWorld()->GetAuthGameMode<AKyokaiGameMode>())
-		{
-			SetActorLocation(GameMode->GetRespawnLocation(), false, nullptr, ETeleportType::TeleportPhysics);
-			GetKyokaiMovement()->StopMovementImmediately();
-		}
+		RespawnAtCheckpoint();
 	}
 
 	if (bShowPrototypeDebug)

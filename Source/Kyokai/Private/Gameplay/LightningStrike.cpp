@@ -56,20 +56,9 @@ void ALightningStrike::ExecuteStrike()
 	StrikeVolume->GetOverlappingActors(Overlapping, AKyokaiCharacter::StaticClass());
 	for (AActor* Actor : Overlapping)
 	{
-		AKyokaiCharacter* Character = Cast<AKyokaiCharacter>(Actor);
-		if (!Character)
+		if (AKyokaiCharacter* Character = Cast<AKyokaiCharacter>(Actor))
 		{
-			continue;
+			Character->RespawnAtCheckpoint();
 		}
-
-		// Knock the character back the way it came, not forward - being hit
-		// costs distance, it doesn't help skip ahead. See the stopgap note
-		// in the header before reusing/extending this consequence.
-		// FacingDirection itself is private to AKyokaiCharacter; its own
-		// yaw (0 facing +X, 180 facing -X, set alongside FacingDirection in
-		// PerformWallJump/movement) is the public equivalent to read here.
-		const float FacingSign = FMath::IsNearlyZero(FMath::UnwindDegrees(Character->GetActorRotation().Yaw)) ? 1.0f : -1.0f;
-		const FVector Knockback(-FacingSign * KnockbackHorizontal, 0.0f, KnockbackVertical);
-		Character->LaunchCharacter(Knockback, true, true);
 	}
 }

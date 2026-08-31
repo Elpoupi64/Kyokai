@@ -15,11 +15,15 @@ class AKyokaiCharacter;
  * subclass owns its own state machine and movement; this base does not
  * tick or move anything on its own.
  *
- * STOPGAP CONSEQUENCE, same situation as ALightningStrike: no health or
- * checkpoint system exists yet in this project (checkpoints are Level 02
- * build-order step 6, still ahead of enemies at step 5), so contact knocks
- * the character back-and-up via LaunchCharacter rather than doing nothing
- * or killing with nowhere to respawn to. Reconsider once checkpoints exist.
+ * CONSEQUENCE: contact respawns the character at the last checkpoint
+ * (AKyokaiCharacter::RespawnAtCheckpoint()) - a real cost now that
+ * checkpoints exist (Level 02 build-order step 6), same as ALightningStrike.
+ * This replaced an earlier knockback-only stopgap (LaunchCharacter, no real
+ * cost) from when enemies were built (step 5) before checkpoints existed.
+ * The level brief's own acceptance criteria talk about hazard "death" and
+ * failures directly, which this now actually matches - a graze isn't
+ * survivable, it costs the run back to the checkpoint, same genre
+ * convention as Celeste/Super Meat Boy rather than a soft push.
  */
 UCLASS(Abstract)
 class KYOKAI_API AKyokaiEnemyBase : public AActor
@@ -29,16 +33,10 @@ class KYOKAI_API AKyokaiEnemyBase : public AActor
 public:
 	AKyokaiEnemyBase();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Enemy")
-	float KnockbackHorizontal = 700.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Enemy")
-	float KnockbackVertical = 600.0f;
-
 protected:
 	/** Nearest AKyokaiCharacter in the world, or nullptr if none exists - there's only ever one player, so this is a simple actor-iterator, not a spatial query. */
 	AKyokaiCharacter* FindPlayerCharacter() const;
 
-	/** Knocks Character away from this actor's X position - see the stopgap note above before reusing/extending this. */
-	void ApplyContactKnockback(AKyokaiCharacter* Character) const;
+	/** Respawns Character at the last checkpoint - see the class comment above. */
+	void ApplyContactConsequence(AKyokaiCharacter* Character) const;
 };

@@ -16,14 +16,10 @@ AKyokaiCharacter* AKyokaiEnemyBase::FindPlayerCharacter() const
 	return Cast<AKyokaiCharacter>(PlayerPawn);
 }
 
-void AKyokaiEnemyBase::ApplyContactKnockback(AKyokaiCharacter* Character) const
+void AKyokaiEnemyBase::ApplyContactConsequence(AKyokaiCharacter* Character) const
 {
-	if (!Character)
+	if (Character)
 	{
-		return;
+		Character->RespawnAtCheckpoint();
 	}
-
-	const float AwaySign = (Character->GetActorLocation().X < GetActorLocation().X) ? -1.0f : 1.0f;
-	const FVector Knockback(AwaySign * KnockbackHorizontal, 0.0f, KnockbackVertical);
-	Character->LaunchCharacter(Knockback, true, true);
 }

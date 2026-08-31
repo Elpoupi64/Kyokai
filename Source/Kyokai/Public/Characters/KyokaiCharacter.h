@@ -50,6 +50,17 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Kyokai|Movement")
 	bool IsTouchingWall() const { return bIsTouchingWall; }
 
+	/**
+	 * Teleports back to AKyokaiGameMode::GetRespawnLocation() (the last
+	 * checkpoint reached, or the level's PlayerStart if none has been
+	 * activated yet) and stops all momentum. Used by the fall-catch in
+	 * Tick() and by hazard contact (lightning, enemies) - see
+	 * AKyokaiEnemyBase's header for why hazards use this instead of a
+	 * knockback now that a real checkpoint system exists.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Kyokai|Checkpoint")
+	void RespawnAtCheckpoint();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual bool CanJumpInternal_Implementation() const override;

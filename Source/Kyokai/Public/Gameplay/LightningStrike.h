@@ -16,16 +16,12 @@ class UBoxComponent;
  * cue off later; the read-the-danger test is the telegraph window itself,
  * not this class's job to visualize yet.
  *
- * STOPGAP CONSEQUENCE, read before reusing this pattern elsewhere: there is
- * no health or checkpoint system in this project yet (checkpoints are Level
- * 02 build-order step 6, still ahead of this one, step 4). A real "hazard"
- * needs a real cost or the telegraph teaches nothing, so a strike knocks the
- * character hard backward-and-up (LaunchCharacter, same mechanism as
- * ABouncePad) rather than doing nothing or silently killing/respawning with
- * no checkpoint to return to. When checkpoints exist, reconsider this - a
- * knockback that just costs a few seconds of re-crossing may or may not
- * still be the right consequence once there's a real fail state to fall
- * back to.
+ * CONSEQUENCE: a strike respawns the character at the last checkpoint
+ * (AKyokaiCharacter::RespawnAtCheckpoint()) - a real cost, matching the
+ * level brief's own acceptance criteria talking about hazard "death" and
+ * failures directly. This replaced an earlier knockback-only stopgap
+ * (LaunchCharacter, no real cost) from when this was built (step 4) before
+ * checkpoints existed (step 6).
  */
 UCLASS()
 class KYOKAI_API ALightningStrike : public AActor
@@ -42,12 +38,6 @@ public:
 	/** Time between one strike and the next telegraph starting. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Lightning", meta = (ClampMin = "0.0"))
 	float CooldownDuration = 3.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Lightning")
-	float KnockbackHorizontal = 700.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Lightning")
-	float KnockbackVertical = 650.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Kyokai|Lightning")
 	bool bIsTelegraphing = false;
