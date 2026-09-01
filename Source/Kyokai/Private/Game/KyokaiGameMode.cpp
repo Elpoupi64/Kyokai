@@ -1309,6 +1309,7 @@ void AKyokaiGameMode::PollForPawnThenRunExpertRouteTest()
 
 	ExpertRouteTestStartTime = GetWorld()->GetTimeSeconds();
 	bExpertRouteJumpFired = false;
+	bExpertRouteJumpFired2 = false;
 	PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
 	ExpertRouteTestEntries.Add(TEXT("{\"step\": \"run_started\"}"));
 
@@ -1337,6 +1338,21 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"jump_fired\"}"));
 	}
 
+	// Second leg (Segment 4 extension): once back on the main path and
+	// running through Roof_Seg4_Arena's flat, jump-free stretch
+	// (10450-11450 - the same reason this arena was picked as the safe
+	// spot for the new platform, see Expert_Seg4_Upper's spawn comment),
+	// fire a second jump to reach Expert_Seg4_Upper. 10600 gives 550cm+
+	// clearance past the main path's own 9200 jump landing (~10037), so
+	// this entry can't interact with that arc at all.
+	if (!bExpertRouteJumpFired2 && Loc.X >= 10600.f)
+	{
+		bExpertRouteJumpFired2 = true;
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"jump_fired_2\"}"));
+	}
+
 	static float LastDebugLogTime = -1000.0f;
 	if (Elapsed - LastDebugLogTime >= 0.1f)
 	{
@@ -1354,10 +1370,21 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		return;
 	}
 
-	// Success: back down onto the main path (Roof_Seg3_Landing, 8950-9300,
-	// top=150 - directly below Expert_Seg3_Upper's far end at 9150),
-	// grounded.
-	if (Loc.X >= 9160.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	// First-leg checkpoint (not the test's own success condition anymore -
+	// logged so a trace still shows the Segment 3 landing happened, since
+	// the test now continues past it): back down onto the main path
+	// (Roof_Seg3_Landing, 8950-9300, top=150 - directly below
+	// Expert_Seg3_Upper's far end at 9150), grounded.
+	static bool bLoggedFirstLegLanding = false;
+	if (!bLoggedFirstLegLanding && Loc.X >= 9160.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	{
+		bLoggedFirstLegLanding = true;
+		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"first_leg_landed\"}"));
+	}
+
+	// Success: landed on Expert_Seg4_Upper (top=650, so Z>=600 rules out
+	// still being on the arena floor below at capsule-center ~448).
+	if (Loc.X >= 11000.f && Loc.Z >= 600.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
@@ -1365,7 +1392,7 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		return;
 	}
 
-	if (Elapsed > 15.f)
+	if (Elapsed > 20.f)
 	{
 		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
 		FinishExpertRouteTest(TEXT("timeout - likely stuck or fell through"));

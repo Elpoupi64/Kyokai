@@ -204,8 +204,11 @@ private:
 	 * brief's "au-dessus des enseignes"), not the full level length yet.
 	 * Enabled only with -KyokaiExpertRouteTest: teleports the pawn onto
 	 * Roof_Seg2_BigLanding already running, fires one jump tap to reach
-	 * Expert_Seg3_Upper, and checks it lands there and can run its length
-	 * back down onto the main path. Writes Saved/ExpertRouteTest.json.
+	 * Expert_Seg3_Upper, checks it lands there and can run its length back
+	 * down onto the main path, then (extension beyond Segment 3) fires a
+	 * second jump tap once back on the main path within Segment 4's arena
+	 * to reach Expert_Seg4_Upper, and checks that lands too. Writes
+	 * Saved/ExpertRouteTest.json.
 	 */
 	void TryStartExpertRouteTest();
 	void PollForPawnThenRunExpertRouteTest();
@@ -217,6 +220,7 @@ private:
 	TWeakObjectPtr<AKyokaiCharacter> ExpertRouteTestCharacter;
 	TWeakObjectPtr<APlayerController> ExpertRouteTestController;
 	TArray<FString> ExpertRouteTestEntries;
+	bool bExpertRouteJumpFired2 = false;
 	int32 ExpertRouteTestPollAttempts = 0;
 	float ExpertRouteTestStartTime = 0.0f;
 	bool bExpertRouteJumpFired = false;
