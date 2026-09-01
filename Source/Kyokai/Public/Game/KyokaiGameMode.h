@@ -32,6 +32,10 @@ public:
 	/** Called by AFinishLine when the player reaches it. */
 	void NotifyLevelCompleted();
 
+	/** Called by AMemoryFragment when the player collects it - idempotent per-fragment (the fragment itself guards against double-collection). */
+	UFUNCTION(BlueprintCallable, Category = "Kyokai|Memory")
+	void NotifyMemoryCollected(const FString& FragmentId, const FString& FragmentText, const FVector& Location);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

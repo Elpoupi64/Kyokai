@@ -102,6 +102,22 @@ void AKyokaiGameMode::NotifyLevelCompleted()
 	}
 }
 
+void AKyokaiGameMode::NotifyMemoryCollected(const FString& FragmentId, const FString& FragmentText, const FVector& Location)
+{
+	// No journal/dialogue UI exists anywhere in this project yet (see
+	// AMemoryFragment's header) - this print is the stand-in presentation
+	// until one does.
+	UE_LOG(LogTemp, Display, TEXT("Memory fragment collected [%s]: %s"), *FragmentId, *FragmentText);
+
+	if (bPlaytestActive)
+	{
+		const float Elapsed = GetWorld()->GetTimeSeconds() - PlaytestStartTime;
+		LogPlaytestEvent(FString::Printf(
+			TEXT("{\"event\": \"memory_collected\", \"fragment_id\": \"%s\", \"elapsed_s\": %.2f, \"location_x\": %.2f}"),
+			*FragmentId, Elapsed, Location.X));
+	}
+}
+
 bool AKyokaiGameMode::IsAutomatedTestRun() const
 {
 	return FParse::Param(FCommandLine::Get(), TEXT("KyokaiInputSmokeTest"))
