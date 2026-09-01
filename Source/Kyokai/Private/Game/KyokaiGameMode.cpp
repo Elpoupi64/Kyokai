@@ -133,6 +133,17 @@ void AKyokaiGameMode::NotifySealCollected(const FString& SealId, const FString& 
 	}
 }
 
+void AKyokaiGameMode::NotifyIntegrityLost(const FString& Cause, const int32 RemainingSegments, const FVector& Location)
+{
+	if (bPlaytestActive)
+	{
+		const float Elapsed = GetWorld()->GetTimeSeconds() - PlaytestStartTime;
+		LogPlaytestEvent(FString::Printf(
+			TEXT("{\"event\": \"integrity_lost\", \"cause\": \"%s\", \"remaining_segments\": %d, \"elapsed_s\": %.2f, \"location_x\": %.2f}"),
+			*Cause, RemainingSegments, Elapsed, Location.X));
+	}
+}
+
 bool AKyokaiGameMode::IsAutomatedTestRun() const
 {
 	return FParse::Param(FCommandLine::Get(), TEXT("KyokaiInputSmokeTest"))

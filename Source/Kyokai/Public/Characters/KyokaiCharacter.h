@@ -67,6 +67,39 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Kyokai|Checkpoint")
 	void RespawnAtCheckpoint(const FString& Cause = TEXT("unknown"));
 
+	/**
+	 * Real integrity system per the GDD (rule 8.2 / [[kyokai-project-overview]]):
+	 * MaxIntegritySegments segments, IFrameDuration of invulnerability per
+	 * hit, most hits cost 1 segment and knock back rather than a full
+	 * reset - only reaching 0 triggers RespawnAtCheckpoint() (which also
+	 * refills segments back to max, matching "instant respawn at 0 HP...
+	 * no lives system").
+	 *
+	 * Replaces the earlier stopgap where every hazard (Onibi, Bakeneko,
+	 * lightning, falling off the level) called RespawnAtCheckpoint()
+	 * directly on any contact - that was flagged from the start as
+	 * temporary pending a real checkpoint/health system, both of which
+	 * now exist.
+	 *
+	 * Returns true if the hit actually applied (not absorbed by i-frames,
+	 * and integrity was still above 0 going in) - callers should follow up
+	 * with their own knockback/consequence in that case. Returns false if
+	 * it was absorbed by i-frames, or if this hit brought integrity to 0
+	 * (RespawnAtCheckpoint() already ran internally) - callers should do
+	 * nothing further either way.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Kyokai|Integrity")
+	bool ApplyHazardHit(const FString& Cause);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Integrity", meta = (ClampMin = "1"))
+	int32 MaxIntegritySegments = 3;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Kyokai|Integrity")
+	int32 CurrentIntegritySegments = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Integrity", meta = (ClampMin = "0.0"))
+	float IFrameDuration = 1.0f;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual bool CanJumpInternal_Implementation() const override;
@@ -172,6 +205,18 @@ private:
 	bool bAirDashAvailable = true;
 	bool bShowPrototypeDebug = true;
 	bool bIsTouchingWall = false;
+
+	/** Counts down from IFrameDuration after a hit; ApplyHazardHit() no-ops while > 0. */
+	float IFrameTimer = 0.0f;
+
+	/**
+	 * Continuously updated while grounded - where a "fall" hit (Tick()'s
+	 * Z<-600 catch) recovers to instead of a full checkpoint teleport, per
+	 * the GDD's "falls send you back to the last safe ground (cost 1
+	 * segment, not a full restart)". Starts at the spawn location so an
+	 * implausible same-tick fall has somewhere sane to land.
+	 */
+	FVector LastSafeGroundLocation = FVector::ZeroVector;
 
 	FTimerHandle DashTimerHandle;
 };

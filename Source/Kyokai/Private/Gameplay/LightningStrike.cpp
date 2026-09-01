@@ -132,7 +132,19 @@ void ALightningStrike::ExecuteStrike()
 	{
 		if (AKyokaiCharacter* Character = Cast<AKyokaiCharacter>(Actor))
 		{
-			Character->RespawnAtCheckpoint(TEXT("lightning"));
+			// Real integrity system now (see AKyokaiCharacter::ApplyHazardHit)
+			// - most strikes cost 1 segment and knock the character back-and-
+			// up rather than a full checkpoint reset; ApplyHazardHit() already
+			// handles the full reset itself once segments reach 0.
+			if (Character->ApplyHazardHit(TEXT("lightning")))
+			{
+				// Fixed back-and-up direction (not facing-relative - unlike
+				// Bakeneko/Onibi, AKyokaiCharacter's own yaw isn't reliably
+				// tied to travel direction) - -X matches this level's near-
+				// universal forward-progress direction, so it reads as a
+				// real setback rather than an arbitrary shove.
+				Character->LaunchCharacter(FVector(-450.0f, 0.0f, 450.0f), true, true);
+			}
 		}
 	}
 }

@@ -29,6 +29,9 @@ public:
 	/** Called by AKyokaiCharacter::RespawnAtCheckpoint() before it teleports - logs a "death" playtest event tagged with what caused it (build-order step 7 instrumentation). */
 	void NotifyPlayerDeath(const FString& Cause, const FVector& Location);
 
+	/** Called by AKyokaiCharacter::ApplyHazardHit() whenever a segment is actually lost (not absorbed by i-frames) - logs a lighter-weight "integrity_lost" event, distinct from the "death" event RespawnAtCheckpoint() logs when segments reach 0. */
+	void NotifyIntegrityLost(const FString& Cause, int32 RemainingSegments, const FVector& Location);
+
 	/** Called by AFinishLine when the player reaches it. */
 	void NotifyLevelCompleted();
 

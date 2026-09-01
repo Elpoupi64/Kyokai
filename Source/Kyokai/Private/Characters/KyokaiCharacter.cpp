@@ -71,6 +71,8 @@ void AKyokaiCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	LastGroundedTime = GetWorld()->GetTimeSeconds();
+	LastSafeGroundLocation = GetActorLocation();
+	CurrentIntegritySegments = MaxIntegritySegments;
 
 	if (GameplayMappingContext)
 	{
@@ -95,7 +97,35 @@ void AKyokaiCharacter::RespawnAtCheckpoint(const FString& Cause)
 		{
 			Movement->StopMovementImmediately();
 		}
+		// "instant respawn at 0 HP... no lives system" - a full checkpoint
+		// reset always comes with a full integrity refill, whether this
+		// call came from ApplyHazardHit() reaching 0 or a direct call
+		// (there are none left as of this system's introduction, but
+		// RespawnAtCheckpoint() stays public/callable on its own).
+		CurrentIntegritySegments = MaxIntegritySegments;
 	}
+}
+
+bool AKyokaiCharacter::ApplyHazardHit(const FString& Cause)
+{
+	if (IFrameTimer > 0.0f)
+	{
+		return false;
+	}
+	IFrameTimer = IFrameDuration;
+	--CurrentIntegritySegments;
+
+	if (AKyokaiGameMode* GameMode = GetWorld()->GetAuthGameMode<AKyokaiGameMode>())
+	{
+		GameMode->NotifyIntegrityLost(Cause, CurrentIntegritySegments, GetActorLocation());
+	}
+
+	if (CurrentIntegritySegments <= 0)
+	{
+		RespawnAtCheckpoint(Cause);
+		return false;
+	}
+	return true;
 }
 
 void AKyokaiCharacter::Tick(const float DeltaSeconds)
@@ -112,10 +142,16 @@ void AKyokaiCharacter::Tick(const float DeltaSeconds)
 	{
 		LastGroundedTime = GetWorld()->GetTimeSeconds();
 		bAirDashAvailable = true;
+		LastSafeGroundLocation = GetActorLocation();
 	}
 	else if (bIsSliding)
 	{
 		OnSlideReleased();
+	}
+
+	if (IFrameTimer > 0.0f)
+	{
+		IFrameTimer = FMath::Max(0.0f, IFrameTimer - DeltaSeconds);
 	}
 
 	TryConsumeJumpBuffer();
@@ -126,10 +162,23 @@ void AKyokaiCharacter::Tick(const float DeltaSeconds)
 	// (top=0, the lowest of any Segment 1/2 platform - confirmed by
 	// querying every StaticMeshActor's Z), so this only fires once the
 	// player has genuinely fallen off the world, not during a legitimate
-	// designed drop.
+	// designed drop. Goes through ApplyHazardHit() like every other hazard
+	// now - a fall costs 1 integrity segment and recovers to the last
+	// grounded spot (GDD: "falls send you back to the last safe ground,
+	// not a full restart") rather than always teleporting to the
+	// checkpoint; only reaching 0 segments does that (handled inside
+	// ApplyHazardHit() itself, which is why the false-return case here
+	// needs no further action).
 	if (GetActorLocation().Z < -600.0f)
 	{
-		RespawnAtCheckpoint(TEXT("fall"));
+		if (ApplyHazardHit(TEXT("fall")))
+		{
+			SetActorLocation(LastSafeGroundLocation, false, nullptr, ETeleportType::TeleportPhysics);
+			if (UKyokaiMovementComponent* FallMovement = GetKyokaiMovement())
+			{
+				FallMovement->StopMovementImmediately();
+			}
+		}
 	}
 
 	if (bShowPrototypeDebug)
