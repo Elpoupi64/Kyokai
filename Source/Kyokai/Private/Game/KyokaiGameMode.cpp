@@ -51,6 +51,7 @@ void AKyokaiGameMode::BeginPlay()
 	TryStartDropTest();
 	TryStartLevel02Timing();
 	TryStartExpertRouteTest();
+	TryStartMasterySealTest();
 	StartPlaytestLogging();
 }
 
@@ -151,7 +152,8 @@ bool AKyokaiGameMode::IsAutomatedTestRun() const
 		|| FParse::Param(FCommandLine::Get(), TEXT("KyokaiBounceTest"))
 		|| FParse::Param(FCommandLine::Get(), TEXT("KyokaiDropTest"))
 		|| FParse::Param(FCommandLine::Get(), TEXT("KyokaiLevel02Timing"))
-		|| FParse::Param(FCommandLine::Get(), TEXT("KyokaiExpertRouteTest"));
+		|| FParse::Param(FCommandLine::Get(), TEXT("KyokaiExpertRouteTest"))
+		|| FParse::Param(FCommandLine::Get(), TEXT("KyokaiMasterySealTest"));
 }
 
 void AKyokaiGameMode::StartPlaytestLogging()
@@ -1413,6 +1415,180 @@ void AKyokaiGameMode::FinishExpertRouteTest(const FString& Outcome)
 	Json += TEXT("  ]\n}\n");
 
 	const FString OutPath = FPaths::ProjectSavedDir() / TEXT("ExpertRouteTest.json");
+	FFileHelper::SaveStringToFile(Json, *OutPath);
+
+	FGenericPlatformMisc::RequestExit(false);
+}
+
+void AKyokaiGameMode::TryStartMasterySealTest()
+{
+	if (!FParse::Param(FCommandLine::Get(), TEXT("KyokaiMasterySealTest")))
+	{
+		return;
+	}
+
+	MasterySealTestEntries.Reset();
+	MasterySealTestPollAttempts = 0;
+	GetWorldTimerManager().SetTimer(
+		MasterySealTestPollHandle, this, &AKyokaiGameMode::PollForPawnThenRunMasterySealTest, 0.2f, true);
+}
+
+void AKyokaiGameMode::PollForPawnThenRunMasterySealTest()
+{
+	++MasterySealTestPollAttempts;
+
+	APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr;
+	AKyokaiCharacter* Character = PC ? Cast<AKyokaiCharacter>(PC->GetPawn()) : nullptr;
+
+	if (!Character && MasterySealTestPollAttempts < 25) // ~5s at 0.2s intervals
+	{
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(MasterySealTestPollHandle);
+
+	if (!Character)
+	{
+		FinishMasterySealTest(TEXT("no pawn possessed within timeout"));
+		return;
+	}
+
+	MasterySealTestController = PC;
+	MasterySealTestCharacter = Character;
+
+	// Same starting spot as ExpertRouteTest - Sign_Seg3_3, already running
+	// toward Expert_Seg3_Upper's own existing entry jump (fires at x=8050).
+	Character->SetActorLocation(FVector(7950.0f, 0.0f, 248.15f), false, nullptr, ETeleportType::TeleportPhysics);
+	Character->GetKyokaiMovement()->StopMovementImmediately();
+
+	MasterySealTestStartTime = GetWorld()->GetTimeSeconds();
+	bMasteryJumpFired = false;
+	bMasteryJumpAFired = false;
+	bMasteryJumpBFired = false;
+	bMasteryDash1Fired = false;
+	bMasteryDash2Fired = false;
+	bMasteryWasGroundedNearBounce = false;
+	PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
+	MasterySealTestEntries.Add(TEXT("{\"step\": \"run_started\"}"));
+
+	GetWorldTimerManager().SetTimer(MasterySealTestTickHandle, this, &AKyokaiGameMode::TickMasterySealTest, 0.05f, true);
+}
+
+void AKyokaiGameMode::TickMasterySealTest()
+{
+	APlayerController* PC = MasterySealTestController.Get();
+	AKyokaiCharacter* Character = MasterySealTestCharacter.Get();
+	if (!PC || !Character)
+	{
+		GetWorldTimerManager().ClearTimer(MasterySealTestTickHandle);
+		FinishMasterySealTest(TEXT("pawn or controller became invalid mid-test"));
+		return;
+	}
+
+	const float Elapsed = GetWorld()->GetTimeSeconds() - MasterySealTestStartTime;
+	const FVector Loc = Character->GetActorLocation();
+	const bool bGrounded = Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround();
+
+	if (!bMasteryJumpFired && Loc.X >= 8050.f)
+	{
+		bMasteryJumpFired = true;
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		MasterySealTestEntries.Add(TEXT("{\"step\": \"jump_expert_fired\"}"));
+	}
+	// Grounded-reactive, not just an X threshold: firing while still
+	// airborne from the previous jump wastes the input entirely (no
+	// double jump in this project) - confirmed happening with a plain X
+	// trigger on the first test run, which silently skipped both new
+	// jumps and just fell back onto the already-fixed Expert-edge fall.
+	if (!bMasteryJumpAFired && Loc.X >= 8600.f && bGrounded)
+	{
+		bMasteryJumpAFired = true;
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		MasterySealTestEntries.Add(TEXT("{\"step\": \"jump_a_fired\"}"));
+	}
+	if (!bMasteryJumpBFired && Loc.X >= 9050.f && bGrounded)
+	{
+		bMasteryJumpBFired = true;
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		MasterySealTestEntries.Add(TEXT("{\"step\": \"jump_b_fired\"}"));
+	}
+	if (!bMasteryDash1Fired && Loc.X >= 9940.f)
+	{
+		bMasteryDash1Fired = true;
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftShift, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftShift, IE_Released, 0.0f));
+		MasterySealTestEntries.Add(TEXT("{\"step\": \"dash_1_fired\"}"));
+	}
+	// Second dash: fire the instant the character goes airborne again past
+	// x=10900 (Mastery_Bounce sits at x=10960) - catches the bounce's own
+	// launch as early as possible, matching the finale's own "fire the
+	// dash right as you leave solid ground" timing principle.
+	if (bMasteryDash1Fired && !bMasteryDash2Fired && Loc.X >= 10580.f)
+	{
+		if (bGrounded)
+		{
+			bMasteryWasGroundedNearBounce = true;
+		}
+		else if (bMasteryWasGroundedNearBounce)
+		{
+			bMasteryDash2Fired = true;
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftShift, IE_Pressed, 1.0f));
+			PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftShift, IE_Released, 0.0f));
+			MasterySealTestEntries.Add(TEXT("{\"step\": \"dash_2_fired\"}"));
+		}
+	}
+
+	static float LastDebugLogTime = -1000.0f;
+	if (Elapsed - LastDebugLogTime >= 0.05f)
+	{
+		LastDebugLogTime = Elapsed;
+		MasterySealTestEntries.Add(FString::Printf(
+			TEXT("{\"step\": \"debug_trace\", \"elapsed_s\": %.2f, \"location_x\": %.2f, \"location_z\": %.2f, \"is_grounded\": %s}"),
+			Elapsed, Loc.X, Loc.Z, bGrounded ? TEXT("true") : TEXT("false")));
+	}
+
+	if (Loc.Z < -800.f)
+	{
+		GetWorldTimerManager().ClearTimer(MasterySealTestTickHandle);
+		FinishMasterySealTest(TEXT("fell through the level"));
+		return;
+	}
+
+	// No seal placed yet at this stage - success just means landing
+	// safely somewhere past the bounce, so the exact landing spot can be
+	// read from the trace and the seal placed there for a follow-up run.
+	if (bMasteryDash2Fired && Loc.X >= 10641.f && bGrounded)
+	{
+		GetWorldTimerManager().ClearTimer(MasterySealTestTickHandle);
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
+		FinishMasterySealTest(TEXT("completed"));
+		return;
+	}
+
+	if (Elapsed > 20.f)
+	{
+		GetWorldTimerManager().ClearTimer(MasterySealTestTickHandle);
+		FinishMasterySealTest(TEXT("timeout - likely stuck or fell through"));
+	}
+}
+
+void AKyokaiGameMode::FinishMasterySealTest(const FString& Outcome)
+{
+	FString Json = TEXT("{\n  \"outcome\": \"");
+	Json += Outcome;
+	Json += TEXT("\",\n  \"steps\": [\n");
+	for (int32 Index = 0; Index < MasterySealTestEntries.Num(); ++Index)
+	{
+		Json += TEXT("    ");
+		Json += MasterySealTestEntries[Index];
+		Json += (Index + 1 < MasterySealTestEntries.Num()) ? TEXT(",\n") : TEXT("\n");
+	}
+	Json += TEXT("  ]\n}\n");
+
+	const FString OutPath = FPaths::ProjectSavedDir() / TEXT("MasterySealTest.json");
 	FFileHelper::SaveStringToFile(Json, *OutPath);
 
 	FGenericPlatformMisc::RequestExit(false);

@@ -221,6 +221,40 @@ private:
 	TWeakObjectPtr<APlayerController> ExpertRouteTestController;
 	TArray<FString> ExpertRouteTestEntries;
 	bool bExpertRouteJumpFired2 = false;
+
+	/**
+	 * Sceau de maîtrise ("chaîne ruée->rebond->ruée précise, pas de
+	 * raccourci de mouvement de base" - level brief). Enabled only with
+	 * -KyokaiMasterySealTest: reuses Expert_Seg3_Upper's own existing
+	 * entry, then fires two plain jump taps (Mastery_Mid, Mastery_Launch -
+	 * each ~280cm gain, comfortably under a jump's ~332cm max) climbing
+	 * well above every other system in this stretch specifically to avoid
+	 * the real-estate conflicts found repeatedly building this seal (main
+	 * path jump arcs peak at absolute Z~580.55; the main walkway's own
+	 * capsule occupies Z~150-450 depending on segment), then a dash at
+	 * Mastery_Launch's edge (a 500cm-depth drop, same numbers as the
+	 * Segment 7 finale's own proven dash-drop) onto Mastery_Bounce, then a
+	 * second dash once airborne from the bounce. Writes
+	 * Saved/MasterySealTest.json.
+	 */
+	void TryStartMasterySealTest();
+	void PollForPawnThenRunMasterySealTest();
+	void TickMasterySealTest();
+	void FinishMasterySealTest(const FString& Outcome);
+
+	FTimerHandle MasterySealTestPollHandle;
+	FTimerHandle MasterySealTestTickHandle;
+	TWeakObjectPtr<AKyokaiCharacter> MasterySealTestCharacter;
+	TWeakObjectPtr<APlayerController> MasterySealTestController;
+	TArray<FString> MasterySealTestEntries;
+	int32 MasterySealTestPollAttempts = 0;
+	float MasterySealTestStartTime = 0.0f;
+	bool bMasteryJumpFired = false;
+	bool bMasteryJumpAFired = false;
+	bool bMasteryJumpBFired = false;
+	bool bMasteryDash1Fired = false;
+	bool bMasteryDash2Fired = false;
+	bool bMasteryWasGroundedNearBounce = false;
 	int32 ExpertRouteTestPollAttempts = 0;
 	float ExpertRouteTestStartTime = 0.0f;
 	bool bExpertRouteJumpFired = false;
