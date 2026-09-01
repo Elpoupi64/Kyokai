@@ -118,6 +118,21 @@ void AKyokaiGameMode::NotifyMemoryCollected(const FString& FragmentId, const FSt
 	}
 }
 
+void AKyokaiGameMode::NotifySealCollected(const FString& SealId, const FString& SealKind, const FVector& Location)
+{
+	// Same "no UI yet, log it" stopgap as NotifyMemoryCollected - see that
+	// method's comment and AHarmonySeal's header.
+	UE_LOG(LogTemp, Display, TEXT("Harmony seal collected [%s] (%s)"), *SealId, *SealKind);
+
+	if (bPlaytestActive)
+	{
+		const float Elapsed = GetWorld()->GetTimeSeconds() - PlaytestStartTime;
+		LogPlaytestEvent(FString::Printf(
+			TEXT("{\"event\": \"seal_collected\", \"seal_id\": \"%s\", \"seal_kind\": \"%s\", \"elapsed_s\": %.2f, \"location_x\": %.2f}"),
+			*SealId, *SealKind, Elapsed, Location.X));
+	}
+}
+
 bool AKyokaiGameMode::IsAutomatedTestRun() const
 {
 	return FParse::Param(FCommandLine::Get(), TEXT("KyokaiInputSmokeTest"))

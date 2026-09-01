@@ -36,6 +36,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Kyokai|Memory")
 	void NotifyMemoryCollected(const FString& FragmentId, const FString& FragmentText, const FVector& Location);
 
+	/** Called by AHarmonySeal when the player collects it - idempotent per-seal (the seal itself guards against double-collection). */
+	UFUNCTION(BlueprintCallable, Category = "Kyokai|Seal")
+	void NotifySealCollected(const FString& SealId, const FString& SealKind, const FVector& Location);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
