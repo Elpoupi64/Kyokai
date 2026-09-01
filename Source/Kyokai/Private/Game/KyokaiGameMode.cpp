@@ -951,6 +951,20 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// stuck for the rest of the run. A third distinct downstream failure
 	// mode from the same shaft variance (after the two gap-merges already
 	// fixed), this time breaking a precondition rather than just position.
+	// Tried replacing 9200 (Roof_Seg3_Landing -> Roof_Seg3_BigLanding manual
+	// jump, 150->350 gain, lands ~x=10037) with a BouncePad instead, twice -
+	// reverted both times, kept as the plain jump trigger. See
+	// kyokai-level02-toits-pluie memory for the full diagnosis: a
+	// ground-level flush pad approached by flat running (not landed on from
+	// an already-airborne jump arc, unlike BouncePad_Seg3_Sign2) loses all
+	// horizontal velocity to the pad's own solid side collision before the
+	// bounce trigger can act - confirmed via a temporary UE_LOG probe that
+	// the overlap genuinely fires and LaunchCharacter genuinely runs, but
+	// with zero horizontal carry left, so it just pops straight up and back
+	// down onto the same blocked spot forever. BouncePad is built for being
+	// landed on top of mid-jump ("a running jump into one keeps its
+	// direction" - see the class's own header comment), not for a flat
+	// walk-in.
 	static const float TriggerX[] = {
 		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6150.f, 7350.f,
 		9200.f, 11350.f, 12470.f, 16610.f, 16700.f, 17570.f
