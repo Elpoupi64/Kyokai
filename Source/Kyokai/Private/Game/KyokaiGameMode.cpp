@@ -1312,6 +1312,9 @@ void AKyokaiGameMode::PollForPawnThenRunExpertRouteTest()
 	ExpertRouteTestStartTime = GetWorld()->GetTimeSeconds();
 	bExpertRouteJumpFired = false;
 	bExpertRouteJumpFired2 = false;
+	bExpertRouteJumpFired3 = false;
+	bExpertRouteDHeld = true;
+	ExpertRouteLastShaftPress = -1000.0f;
 	PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
 	ExpertRouteTestEntries.Add(TEXT("{\"step\": \"run_started\"}"));
 
@@ -1355,6 +1358,42 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"jump_fired_2\"}"));
 	}
 
+	// Third leg (Segment 5 extension): the expert route has no geometry of
+	// its own through the wall-jump shaft's footprint (12550-12810) - the
+	// player crosses it on the main path like anyone else. Same D-release/
+	// periodic-jump-tap handling as Level02Timing's own proven shaft logic
+	// (see that function's comment for why - PerformWallJump() sets
+	// Velocity.X outright, and holding D the whole time fights that).
+	const bool bInShaft = Loc.X >= 12600.f && Loc.X <= 13060.f && Loc.Z < 1150.f;
+	if (bInShaft && bExpertRouteDHeld)
+	{
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
+		bExpertRouteDHeld = false;
+	}
+	else if (!bInShaft && !bExpertRouteDHeld)
+	{
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
+		bExpertRouteDHeld = true;
+	}
+	if (Loc.X >= 12600.f && Loc.X <= 12860.f && Loc.Z < 1050.f && Elapsed - ExpertRouteLastShaftPress >= 0.25f)
+	{
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		ExpertRouteLastShaftPress = Elapsed;
+	}
+
+	// Fires once clear of the shaft and grounded on the flat post-shaft
+	// stretch (Roof_Seg5_ShaftExit/Chase, both top=1150, no jumps needed
+	// on the main path here) - reaching Expert_Seg5_Upper above the
+	// Bakeneko chase zone.
+	if (!bExpertRouteJumpFired3 && Loc.X >= 13100.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	{
+		bExpertRouteJumpFired3 = true;
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"jump_fired_3\"}"));
+	}
+
 	static float LastDebugLogTime = -1000.0f;
 	if (Elapsed - LastDebugLogTime >= 0.1f)
 	{
@@ -1384,9 +1423,20 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"first_leg_landed\"}"));
 	}
 
-	// Success: landed on Expert_Seg4_Upper (top=650, so Z>=600 rules out
-	// still being on the arena floor below at capsule-center ~448).
-	if (Loc.X >= 11000.f && Loc.Z >= 600.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	// Second-leg checkpoint (not the test's own success condition anymore -
+	// logged so a trace still shows the Segment 4 landing happened): landed
+	// on Expert_Seg4_Upper (top=650, so Z>=600 rules out still being on the
+	// arena floor below at capsule-center ~448).
+	static bool bLoggedSecondLegLanding = false;
+	if (!bLoggedSecondLegLanding && Loc.X >= 11000.f && Loc.Z >= 600.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	{
+		bLoggedSecondLegLanding = true;
+		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"second_leg_landed\"}"));
+	}
+
+	// Success: landed on Expert_Seg5_Upper (top=1430, so Z>=1350 rules out
+	// still being on the flat post-shaft stretch at capsule-center ~1248).
+	if (Loc.X >= 13400.f && Loc.Z >= 1350.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
@@ -1394,7 +1444,7 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		return;
 	}
 
-	if (Elapsed > 20.f)
+	if (Elapsed > 30.f)
 	{
 		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
 		FinishExpertRouteTest(TEXT("timeout - likely stuck or fell through"));

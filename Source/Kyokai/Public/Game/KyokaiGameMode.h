@@ -207,8 +207,14 @@ private:
 	 * Expert_Seg3_Upper, checks it lands there and can run its length back
 	 * down onto the main path, then (extension beyond Segment 3) fires a
 	 * second jump tap once back on the main path within Segment 4's arena
-	 * to reach Expert_Seg4_Upper, and checks that lands too. Writes
-	 * Saved/ExpertRouteTest.json.
+	 * to reach Expert_Seg4_Upper, checks that lands too, then (extension
+	 * beyond Segment 4) drops back to the main path again, crosses the
+	 * wall-jump shaft using the same D-release/periodic-jump-tap handling
+	 * as the main Level02Timing bot (the expert route deliberately has NO
+	 * geometry of its own through the shaft's X-footprint - see
+	 * kyokai-level02-toits-pluie memory on why bridging over/under it was
+	 * rejected), and fires a third jump tap on the flat post-shaft stretch
+	 * to reach Expert_Seg5_Upper. Writes Saved/ExpertRouteTest.json.
 	 */
 	void TryStartExpertRouteTest();
 	void PollForPawnThenRunExpertRouteTest();
@@ -221,6 +227,9 @@ private:
 	TWeakObjectPtr<APlayerController> ExpertRouteTestController;
 	TArray<FString> ExpertRouteTestEntries;
 	bool bExpertRouteJumpFired2 = false;
+	bool bExpertRouteJumpFired3 = false;
+	bool bExpertRouteDHeld = true;
+	float ExpertRouteLastShaftPress = -1000.0f;
 
 	/**
 	 * Sceau de maîtrise ("chaîne ruée->rebond->ruée précise, pas de
