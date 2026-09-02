@@ -59,7 +59,7 @@ Trois choses à noter manuellement (rien de tout ça n'est capturé automatiquem
 
 1. **Moments de confusion apparente** — le testeur hésite, tourne en rond, ou répète la même erreur sans comprendre pourquoi. Noter le segment approximatif (1 à 7, voir la fiche de niveau) et une phrase de description.
 2. **Toute mort qui semble venir d'un danger hors caméra** — le testeur se fait toucher sans avoir eu le temps de voir venir le danger. C'est un des critères d'acceptation directs.
-3. **Comportement sur la route experte**, si le testeur l'emprunte (segment 3, au-dessus des enseignes) : est-ce que la traversée s'est faite sans blocage forcé ? A-t-il dû abandonner et redescendre ?
+3. **Comportement sur la route experte**, si le testeur l'emprunte (entrée au segment 3, au-dessus des enseignes — elle court désormais sur toute la longueur du niveau jusqu'à l'arrivée, mise à jour 2026-09-02) : est-ce que la traversée s'est faite sans blocage forcé ? A-t-il dû abandonner et redescendre ?
 
 Une grille simple suffit :
 
@@ -91,7 +91,7 @@ Types d'événements :
 | --- | --- | --- |
 | `session_start` | `session_id` | Début de la session |
 | `fps_sample` | `elapsed_s`, `fps`, `min_fps_so_far` | Échantillon toutes les 2s (voir limites) |
-| `checkpoint_activated` | `elapsed_s`, `location_x` | Un des 3 checkpoints touché (x=7200 / 12300 / 15600) |
+| `checkpoint_activated` | `elapsed_s`, `location_x` | Un des 3 checkpoints touché (x=11900 / 20000 / 26300 — mis à jour 2026-09-02 après l'extension de rythme en 7 segments, commit `c08f874` ; les valeurs d'origine 7200/12300/15600 ne sont plus valables sur le niveau actuel) |
 | `death` | `cause`, `elapsed_s`, `location_x`, `location_z` | Renvoi au dernier checkpoint. `cause` ∈ {`fall`, `lightning`, `onibi`, `bakeneko`} |
 | `expert_route_used` | `elapsed_s` | Le joueur a foulé la route experte (segment 3) |
 | `level_completed` | `total_time_s` | Ligne d'arrivée atteinte — fin de session réussie |
