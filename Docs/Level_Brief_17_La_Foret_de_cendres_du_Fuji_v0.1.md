@@ -67,7 +67,7 @@ Maximum deux familles actives simultanément sur le chemin principal (règle 10.
 
 | Famille | Rôle dans ce niveau | Réponse enseignée ici |
 | --- | --- | --- |
-| **Onibi** | Projectile lent à trajectoire lisible (bestiaire 10.2), déjà rencontré au Niveau 01 puis réengagé au Niveau 16 | Déviation par ombrelle — réponse canonique complète, déjà bien connue. |
+| **Onibi** | Projectile lent à trajectoire lisible (bestiaire 10.2), rencontré pour la première fois au Niveau 01 puis réengagé à plusieurs reprises (09, 12, 16) | Déviation par ombrelle — réponse canonique complète depuis le Niveau 12, déjà bien connue à ce stade. |
 | **Tengu corrompu** | Variante assombrie de Tengu éclaireur (bestiaire 10.2 pour la famille de base), cohérente avec la règle 10.3 (les variantes augmentent la combinaison ou le tempo, jamais seulement les points de vie) | Parade, câble ou abri — réponse canonique déjà connue, mais le tempo et l'imprévisibilité sont accrus par la corruption. |
 
 Densité : jamais plus de trois ennemis menaçants simultanés hors set piece (règle 10.1).
