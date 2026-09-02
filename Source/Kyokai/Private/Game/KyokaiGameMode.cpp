@@ -1009,11 +1009,19 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// landed on top of mid-jump ("a running jump into one keeps its
 	// direction" - see the class's own header comment), not for a flat
 	// walk-in.
+	// Segment 1 pacing extension (user's own playtest: <2 min full-level
+	// completion vs the 8-12 min target): two new cycles of the exact
+	// original Segment 1 shape, built in negative X leading up to the
+	// existing x=0 start - these 6 jump triggers are new, everything from
+	// 1970 onward is untouched (same absolute values as before the
+	// extension, since none of the original content moved).
 	static const float TriggerX[] = {
+		-7030.f, -6430.f, -5630.f, -2530.f, -1930.f, -1130.f,
 		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6150.f, 7350.f,
 		9200.f, 11350.f, 12470.f, 16610.f, 16700.f, 17570.f
 	};
 	static const int32 TriggerType[] = {
+		0, 0, 0, 0, 0, 0,
 		0, 0, 0, 1, 2, 0, 0,
 		0, 0, 0, 3, 2, 0
 	};
