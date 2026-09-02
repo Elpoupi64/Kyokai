@@ -54,6 +54,12 @@ void ABouncePad::OnBounceTriggerOverlap(UPrimitiveComponent* OverlappedComponent
 	}
 	LastBounceTime = Now;
 
+	// Pression: "bounces" is one of the GDD's own listed fill sources -
+	// this is what makes a dash->bounce->dash chain (the mastery seal's
+	// own design) affordable: the bounce here refunds enough to cover
+	// the second dash.
+	Character->AddPression(Character->PressionBounceBonus);
+
 	// bXYOverride=false keeps whatever horizontal velocity the character
 	// already had (so a running jump into the pad keeps its direction);
 	// bZOverride=true replaces vertical velocity outright with the bounce.

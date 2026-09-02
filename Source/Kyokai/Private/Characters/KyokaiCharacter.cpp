@@ -73,6 +73,7 @@ void AKyokaiCharacter::BeginPlay()
 	LastGroundedTime = GetWorld()->GetTimeSeconds();
 	LastSafeGroundLocation = GetActorLocation();
 	CurrentIntegritySegments = MaxIntegritySegments;
+	CurrentPression = MaxPressionCharges;
 
 	if (GameplayMappingContext)
 	{
@@ -128,6 +129,11 @@ bool AKyokaiCharacter::ApplyHazardHit(const FString& Cause)
 	return true;
 }
 
+void AKyokaiCharacter::AddPression(const float Amount)
+{
+	CurrentPression = FMath::Clamp(CurrentPression + Amount, 0.0f, MaxPressionCharges);
+}
+
 void AKyokaiCharacter::Tick(const float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -152,6 +158,27 @@ void AKyokaiCharacter::Tick(const float DeltaSeconds)
 	if (IFrameTimer > 0.0f)
 	{
 		IFrameTimer = FMath::Max(0.0f, IFrameTimer - DeltaSeconds);
+	}
+
+	// Pression: "continuous movement" fills it (deadzone avoids tiny
+	// residual velocities - e.g. right as a dash decays - counting as
+	// real movement), otherwise the idle timer runs and, past the
+	// decay delay, drains it. bIsDashing is excluded from the moving
+	// check on purpose: the dash consumes its own Pression cost up
+	// front, so it shouldn't also refill from its own motion.
+	const bool bPressionIsMoving = !bIsDashing && FMath::Abs(GetVelocity().X) > 50.0f;
+	if (bPressionIsMoving)
+	{
+		PressionIdleTimer = 0.0f;
+		CurrentPression = FMath::Min(MaxPressionCharges, CurrentPression + PressionMoveFillRate * DeltaSeconds);
+	}
+	else
+	{
+		PressionIdleTimer += DeltaSeconds;
+		if (PressionIdleTimer > PressionIdleDecayDelay)
+		{
+			CurrentPression = FMath::Max(0.0f, CurrentPression - PressionIdleDecayRate * DeltaSeconds);
+		}
 	}
 
 	TryConsumeJumpBuffer();
@@ -365,11 +392,12 @@ void AKyokaiCharacter::OnDashPressed()
 
 	const float Now = GetWorld()->GetTimeSeconds();
 	const bool bCanAirDash = Movement->IsMovingOnGround() || bAirDashAvailable;
-	if (!bCanAirDash || Now - LastDashTime < DashCooldown)
+	if (!bCanAirDash || Now - LastDashTime < DashCooldown || CurrentPression < PressionDashCost)
 	{
 		return;
 	}
 
+	CurrentPression -= PressionDashCost;
 	OnSlideReleased();
 	bIsDashing = true;
 	LastDashTime = Now;

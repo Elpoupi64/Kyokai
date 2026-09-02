@@ -66,7 +66,8 @@ void AMemoryFragment::BeginPlay()
 void AMemoryFragment::OnCollectOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (bCollected || !Cast<AKyokaiCharacter>(OtherActor))
+	AKyokaiCharacter* Character = Cast<AKyokaiCharacter>(OtherActor);
+	if (bCollected || !Character)
 	{
 		return;
 	}
@@ -74,6 +75,10 @@ void AMemoryFragment::OnCollectOverlap(UPrimitiveComponent* OverlappedComponent,
 
 	VisualMesh->SetVisibility(false);
 	CollectTrigger->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	// Pression: "in-line collection" is one of the GDD's own listed fill
+	// sources - collecting without stopping keeps the flow going.
+	Character->AddPression(Character->PressionPickupBonus);
 
 	if (AKyokaiGameMode* GameMode = GetWorld()->GetAuthGameMode<AKyokaiGameMode>())
 	{

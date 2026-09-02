@@ -100,6 +100,59 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Integrity", meta = (ClampMin = "0.0"))
 	float IFrameDuration = 1.0f;
 
+	/**
+	 * Pression (GDD "flow resource" - [[kyokai-project-overview]]): 2
+	 * charges, fills via continuous movement/bounces/in-line collection,
+	 * decays after 2s idle. Dash costs 1 charge. "Main path is always
+	 * clearable without maintaining a full gauge; expert routes spend it
+	 * for shortcuts/secrets" - a single dash (the finale's dash-drop)
+	 * only ever needs 1 of the 2 charges, and continuous running refills
+	 * fast enough that reaching the finale with less than a full charge
+	 * shouldn't happen in practice; the expert route's own dash-chains
+	 * (e.g. the mastery seal's ruée->rebond->ruée) are exactly the case
+	 * this is meant to gate - the mid-chain bounce's Pression bonus is
+	 * what makes affording the second dash possible.
+	 *
+	 * Not yet wired to the "ligne de rivets de cuivre" the level brief
+	 * describes powering the expert route (no distinct copper-rivet pickup
+	 * exists) - bounces and pickups already on the expert route serve
+	 * that role for now; a dedicated rivet actor is future work if the
+	 * generic fill sources prove insufficient.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Pression", meta = (ClampMin = "0.1"))
+	float MaxPressionCharges = 2.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Kyokai|Pression")
+	float CurrentPression = 2.0f;
+
+	/** Continuous-movement fill rate (charges/sec) - 0.5 fills empty-to-full in 4s. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Pression", meta = (ClampMin = "0.0"))
+	float PressionMoveFillRate = 0.5f;
+
+	/** Flat bonus on a successful bounce ("bounces" in the GDD's fill-source list). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Pression", meta = (ClampMin = "0.0"))
+	float PressionBounceBonus = 0.5f;
+
+	/** Flat bonus on collecting a pickup ("in-line collection"). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Pression", meta = (ClampMin = "0.0"))
+	float PressionPickupBonus = 0.3f;
+
+	/** How long the character must be idle (not moving horizontally) before Pression starts decaying. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Pression", meta = (ClampMin = "0.0"))
+	float PressionIdleDecayDelay = 2.0f;
+
+	/** Decay rate once idle (charges/sec) - drains a full gauge in 2s once decay starts. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Pression", meta = (ClampMin = "0.0"))
+	float PressionIdleDecayRate = 1.0f;
+
+	/** Charges a single dash consumes. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Pression", meta = (ClampMin = "0.0"))
+	float PressionDashCost = 1.0f;
+
+	/** Adds Pression (clamped to MaxPressionCharges) - called by bounces and pickups. */
+	UFUNCTION(BlueprintCallable, Category = "Kyokai|Pression")
+	void AddPression(float Amount);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual bool CanJumpInternal_Implementation() const override;
@@ -217,6 +270,9 @@ private:
 	 * implausible same-tick fall has somewhere sane to land.
 	 */
 	FVector LastSafeGroundLocation = FVector::ZeroVector;
+
+	/** Seconds since horizontal velocity last exceeded the idle deadzone - drives Pression's idle decay. */
+	float PressionIdleTimer = 0.0f;
 
 	FTimerHandle DashTimerHandle;
 };
