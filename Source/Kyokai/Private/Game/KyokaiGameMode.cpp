@@ -1313,6 +1313,7 @@ void AKyokaiGameMode::PollForPawnThenRunExpertRouteTest()
 	bExpertRouteJumpFired = false;
 	bExpertRouteJumpFired2 = false;
 	bExpertRouteJumpFired3 = false;
+	bExpertRouteJumpFired4 = false;
 	bExpertRouteDHeld = true;
 	ExpertRouteLastShaftPress = -1000.0f;
 	PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
@@ -1394,6 +1395,24 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"jump_fired_3\"}"));
 	}
 
+	// Fourth leg (Segment 6 extension): Segment 6's three LightningStrike
+	// volumes (StrikeVolume box extent 150x200x200, centered at each
+	// strike's own X) combine into one contiguous danger column across
+	// ~14260-15150 - too wide for any single/double jump's own arc to stay
+	// above throughout (a jump only clears its full height near the
+	// apex, dipping low again well before landing). Built as a solid
+	// bridge instead of another jump-arc landing: fires here, on
+	// Expert_Seg5_Upper's own surface, to reach Expert_Seg6_Bridge, which
+	// itself spans clear across the whole danger column at a height
+	// (top=1710) safely above the strikes' own reach (1450).
+	if (!bExpertRouteJumpFired4 && Loc.X >= 13950.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	{
+		bExpertRouteJumpFired4 = true;
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"jump_fired_4\"}"));
+	}
+
 	static float LastDebugLogTime = -1000.0f;
 	if (Elapsed - LastDebugLogTime >= 0.1f)
 	{
@@ -1434,9 +1453,19 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"second_leg_landed\"}"));
 	}
 
-	// Success: landed on Expert_Seg5_Upper (top=1430, so Z>=1350 rules out
-	// still being on the flat post-shaft stretch at capsule-center ~1248).
-	if (Loc.X >= 13400.f && Loc.Z >= 1350.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	// Third-leg checkpoint (not the test's own success condition anymore):
+	// landed on Expert_Seg5_Upper (top=1430, so Z>=1350 rules out still
+	// being on the flat post-shaft stretch at capsule-center ~1248).
+	static bool bLoggedThirdLegLanding = false;
+	if (!bLoggedThirdLegLanding && Loc.X >= 13400.f && Loc.Z >= 1350.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	{
+		bLoggedThirdLegLanding = true;
+		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"third_leg_landed\"}"));
+	}
+
+	// Success: landed on Expert_Seg6_Bridge (top=1710, so Z>=1600 rules
+	// out still being on Expert_Seg5_Upper at capsule-center ~1528).
+	if (Loc.X >= 14400.f && Loc.Z >= 1600.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
@@ -1444,7 +1473,7 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		return;
 	}
 
-	if (Elapsed > 30.f)
+	if (Elapsed > 35.f)
 	{
 		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
 		FinishExpertRouteTest(TEXT("timeout - likely stuck or fell through"));

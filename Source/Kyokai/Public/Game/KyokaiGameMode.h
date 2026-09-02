@@ -228,6 +228,7 @@ private:
 	TArray<FString> ExpertRouteTestEntries;
 	bool bExpertRouteJumpFired2 = false;
 	bool bExpertRouteJumpFired3 = false;
+	bool bExpertRouteJumpFired4 = false;
 	bool bExpertRouteDHeld = true;
 	float ExpertRouteLastShaftPress = -1000.0f;
 
