@@ -1039,7 +1039,7 @@ void AKyokaiGameMode::TickLevel02Timing()
 		-7030.f, -6430.f, -5630.f, -2530.f, -1930.f, -1130.f,
 		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6150.f,
 		8050.f, 8950.f, 10850.f,
-		13550.f, 15400.f, 19050.f, 20170.f, 27310.f, 27400.f, 28270.f
+		13550.f, 15400.f, 19050.f, 20170.f, 27310.f, 27400.f, 29770.f
 	};
 	static const int32 TriggerType[] = {
 		0, 0, 0, 0, 0, 0,
@@ -1211,7 +1211,7 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// Only 4250 (Segment 1's own end) is unchanged - everything after it
 	// shifted +4700 by the Segment 2 pacing extension (original values:
 	// 6850, 10450, 12200, 14060, 15500, 18000).
-	static const float SegmentEndX[] = { 4250.f, 11550.f, 16650.f, 19900.f, 23260.f, 26200.f, 28700.f };
+	static const float SegmentEndX[] = { 4250.f, 11550.f, 16650.f, 19900.f, 23260.f, 26200.f, 30200.f };
 	static const TCHAR* SegmentNames[] = {
 		TEXT("Seg1_Accroche"), TEXT("Seg2_Enseignement"), TEXT("Seg3_Enseignes"),
 		TEXT("Seg4_Onibi"), TEXT("Seg5_Gouttieres"), TEXT("Seg6_Paratonnerres"), TEXT("Seg7_Finish")
@@ -1353,6 +1353,7 @@ void AKyokaiGameMode::PollForPawnThenRunExpertRouteTest()
 	bExpertRouteJumpFired2b = false;
 	bExpertRouteJumpFired3 = false;
 	bExpertRouteJumpFired4 = false;
+	bExpertRouteJumpFired5 = false;
 	bExpertRouteDHeld = true;
 	ExpertRouteLastShaftPress = -1000.0f;
 	PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
@@ -1542,13 +1543,32 @@ void AKyokaiGameMode::TickExpertRouteTest()
 	// happens to pass through FinishLine_L02's own trigger height
 	// (998.15) during the final part of the descent.
 
+	// Segment 7 pacing extension: Expert_Seg7_Bridge's own edge (28250)
+	// never moved, but Roof_Seg7_DashLanding's right edge did (widened
+	// from 28300 to 29800 to add finale content) - same story as Segment
+	// 4's Roof_Seg4_Arena fix. The natural fall off the bridge's edge now
+	// lands early on the much-wider DashLanding instead of clearing all
+	// the way to Platform_Finish, so the character needs its own jump to
+	// cross into BouncePad_Seg7_Final - same 100cm-lead convention as the
+	// main path's own equivalent trigger for this exact gap (29700, 100cm
+	// before DashLanding's new edge at 29800). The bounce pad's own arc
+	// then carries it the rest of the way to the finish, same as the main
+	// path - no separate landing trigger needed for that part.
+	if (!bExpertRouteJumpFired5 && Loc.X >= 29700.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	{
+		bExpertRouteJumpFired5 = true;
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"jump_fired_5\"}"));
+	}
+
 	// Success: landed on Platform_Finish_L02 (top=900, so Z>=850 rules out
 	// still being mid-fall; X>=18000 is the platform's own near edge).
 	// NotifyLevelCompleted() itself isn't checked here - it only logs
 	// when a real playtest is active (bPlaytestActive), which automated
 	// test runs like this one deliberately don't set (see
 	// IsAutomatedTestRun()), so it would never fire during this test.
-	if (Loc.X >= 28700.f && Loc.Z >= 850.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	if (Loc.X >= 30200.f && Loc.Z >= 850.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));

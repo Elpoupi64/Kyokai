@@ -230,6 +230,7 @@ private:
 	bool bExpertRouteJumpFired2b = false;
 	bool bExpertRouteJumpFired3 = false;
 	bool bExpertRouteJumpFired4 = false;
+	bool bExpertRouteJumpFired5 = false;
 	bool bExpertRouteDHeld = true;
 	float ExpertRouteLastShaftPress = -1000.0f;
 
