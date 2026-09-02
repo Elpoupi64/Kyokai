@@ -1039,7 +1039,7 @@ void AKyokaiGameMode::TickLevel02Timing()
 		-7030.f, -6430.f, -5630.f, -2530.f, -1930.f, -1130.f,
 		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6150.f,
 		8050.f, 8950.f, 10850.f,
-		13550.f, 15400.f, 19050.f, 20170.f, 25810.f, 25900.f, 26770.f
+		13550.f, 15400.f, 19050.f, 20170.f, 27310.f, 27400.f, 28270.f
 	};
 	static const int32 TriggerType[] = {
 		0, 0, 0, 0, 0, 0,
@@ -1165,7 +1165,7 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// fires correctly even if the character is still airborne (wall-jump
 	// shaft overshoot) when it first crosses this X.
 	// Shifted +4700 by the Segment 2 pacing extension (originally 15800-16150).
-	if (!bLevel02TimingSliding && Loc.X >= 25000.f && Loc.X <= 25350.f
+	if (!bLevel02TimingSliding && Loc.X >= 26500.f && Loc.X <= 26850.f
 		&& Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftControl, IE_Pressed, 1.0f));
@@ -1211,7 +1211,7 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// Only 4250 (Segment 1's own end) is unchanged - everything after it
 	// shifted +4700 by the Segment 2 pacing extension (original values:
 	// 6850, 10450, 12200, 14060, 15500, 18000).
-	static const float SegmentEndX[] = { 4250.f, 11550.f, 16650.f, 19900.f, 23260.f, 24700.f, 27200.f };
+	static const float SegmentEndX[] = { 4250.f, 11550.f, 16650.f, 19900.f, 23260.f, 26200.f, 28700.f };
 	static const TCHAR* SegmentNames[] = {
 		TEXT("Seg1_Accroche"), TEXT("Seg2_Enseignement"), TEXT("Seg3_Enseignes"),
 		TEXT("Seg4_Onibi"), TEXT("Seg5_Gouttieres"), TEXT("Seg6_Paratonnerres"), TEXT("Seg7_Finish")
@@ -1548,7 +1548,7 @@ void AKyokaiGameMode::TickExpertRouteTest()
 	// when a real playtest is active (bPlaytestActive), which automated
 	// test runs like this one deliberately don't set (see
 	// IsAutomatedTestRun()), so it would never fire during this test.
-	if (Loc.X >= 27200.f && Loc.Z >= 850.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	if (Loc.X >= 28700.f && Loc.Z >= 850.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
