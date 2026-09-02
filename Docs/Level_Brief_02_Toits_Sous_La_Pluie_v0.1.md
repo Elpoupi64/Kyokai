@@ -1,6 +1,6 @@
 # Kurogane : Les Esprits de Vapeur — Fiche de niveau
 
-Version 0.1 — Gabarit Annexe A du GDD (2026-08-31)
+Version 0.2 — Gabarit Annexe A du GDD (rédigé 2026-08-31, mis à jour 2026-09-03 après le graybox complet et l'extension de rythme en 7 segments — voir la section « État de production » en fin de fiche)
 
 ## Identité
 
@@ -10,7 +10,7 @@ Version 0.1 — Gabarit Annexe A du GDD (2026-08-31)
 | Acte | I — Edo sous pression |
 | Nom | Les Toits sous la pluie |
 | Propriétaire | À assigner |
-| Version | 0.1 (graybox) |
+| Version | 0.2 (graybox complet + rythme étendu ; seul niveau de la campagne à ce stade avec un build réel) |
 | Durée cible | 9 à 10 minutes |
 
 ## Promesse
@@ -49,6 +49,7 @@ Gabarit du niveau (règle 8.1 du GDD) appliqué à la structure spécifique four
 - **CP1 — ≈2:30**, à la sortie des tuiles inclinées, avant que la Ruée devienne précise (enseignes/fils).
 - **CP2 — ≈5:30**, avant la poursuite Bakeneko (saut mural sous pression temporelle).
 - **CP3 — ≈7:00**, juste avant le front d'orage — le set piece de 45 à 90 s (règle 8.2) correspond à la séquence 8:30–10:00.
+- **Mise à jour 2026-09-03** : ces trois repères restent les cibles de conception (avant chaque set piece majeur) ; en coordonnées de build réelles, après l'extension de rythme en 7 segments, les trois checkpoints se trouvent maintenant à x=11900 / 20000 / 26300 sur le niveau étendu — voir `Docs/Protocole_Playtest_Niveau02_v0.1.md`, mis à jour avec les mêmes valeurs.
 
 **Set piece** : la course finale dans l'orage, 7:00→10:00 en tension montante mais le set piece proprement dit (rythme imposé par les éclairs, aucune décision de mouvement possible pendant plus de 5 s sans rendre le contrôle) est la tranche 8:30–10:00 — dans le budget des 45 à 90 s de la règle 8.2.
 
@@ -67,7 +68,7 @@ Maximum deux familles actives simultanément sur le chemin principal (règle 10.
 
 | Famille | Rôle dans ce niveau | Réponse enseignée ici |
 | --- | --- | --- |
-| **Onibi** | Première rencontre de la campagne (4:00–5:30). Projectile lent à trajectoire lisible. | **Mouvement de base uniquement** — l'Ombrelle turbine (réponse "canonique" du bestiaire, section 10.2) ne se débloque qu'à l'Acte III : ici on apprend à lire la trajectoire et se repositionner par la course/le saut, pas à dévier. La vraie réponse (déviation) sera enseignée plus tard sur les Onibi salins (niveau 09) et les Onibi de l'Acte V (niveau 17). |
+| **Onibi** | Première rencontre de la campagne (4:00–5:30). Projectile lent à trajectoire lisible. | **Mouvement de base uniquement** — l'Ombrelle turbine (réponse "canonique" du bestiaire, section 10.2) ne se débloque qu'à l'Acte III : ici on apprend à lire la trajectoire et se repositionner par la course/le saut, pas à dévier. La réponse par déviation reste indisponible aux Onibi salins du Niveau 09 (l'Ombrelle n'est accordée qu'à son propre climax) ; elle n'est utilisée sans réserve pour la première fois qu'au Niveau 12, puis réengagée aux Niveaux 16 et 17 — mise à jour 2026-09-03 après la passe de cohérence transversale sur les 20 fiches, qui a corrigé cette même chaîne dans les fiches 16 et 17. |
 | **Bakeneko de gouttière** | Poursuite le long des gouttières (5:30–7:00). Bond annoncé par un miaulement audio depuis l'arrière-plan. | Lecture du miaulement + saut mural pour gagner de la hauteur pendant la poursuite ; contre aérien optionnel si le joueur maîtrise déjà le timing. |
 
 Densité : jamais plus de trois ennemis menaçants simultanés hors set piece (règle 10.1) ; la poursuite Bakeneko reste un ennemi unique et persistant, pas un groupe.
@@ -92,7 +93,7 @@ Densité : jamais plus de trois ennemis menaçants simultanés hors set piece (r
 - **Caméra** : doit élargir le champ pendant la séquence 7:00–8:30 pour que chaque éclair soit visible avant impact (aucune mort attribuable à un danger hors champ, règle 8.4/18.3) ; look-ahead renforcé pendant la course finale.
 - **VFX (Niagara)** : pluie, éclaboussures sur tuiles mouillées, flash d'éclair, vapeur de la Ruée, poussière de bond Bakeneko. Limiter à trois informations simultanées par effet de gameplay (origine, trajectoire, zone de danger — règle 12.3).
 - **Streaming** : niveau compact, une seule sublevel a priori suffisant à ce stade de graybox ; à revalider si la route experte alourdit le budget de rendu.
-- **Dépendances nouvelles à construire** (aucune n'existe encore en code/contenu) : tuiles à friction variable, enseignes plateforme+rebond (probable extension de `ABouncePad`), fils télégraphiques parcourables, système de rafale de vent télégraphiée, système d'éclair télégraphié, comportement Onibi (flottement + charge), comportement Bakeneko (poursuite + bond), système de checkpoint (`AFlowCheckpoint`, inexistant en code à ce jour).
+- **Dépendances nouvelles à construire** — **toutes construites depuis (mise à jour 2026-09-03)** : tuiles à friction variable (`PM_Tile_Slippery`/`PM_Tile_Grippy`), enseignes plateforme+rebond (`ABouncePad`, confirmé réutilisé tel quel), fils télégraphiques parcourables (`PM_Wire`), système de rafale de vent télégraphiée (`AWindGust`), système d'éclair télégraphié (`ALightningStrike`), comportement Onibi et Bakeneko (`AOnibi`/`ABakeneko`), système de checkpoint (`ACheckpoint`/`AKyokaiGameMode`, pas `AFlowCheckpoint` — le nom du GDD n'a jamais été repris dans le code, écart de nommage mineur déjà noté ailleurs dans le projet). Voir [[kyokai-level02-toits-pluie]] (mémoire projet) pour l'historique complet de construction, commit par commit.
 - **Performance** : 60 fps cible, aucun hitch perceptible sur la ligne critique (règle 15.6/18.3).
 
 ## Accessibilité
@@ -121,17 +122,28 @@ Critères d'acceptation d'un niveau (règle 18.3 du GDD), appliqués ici :
 ## Ordre de réalisation (rappel, ne pas sauter d'étape)
 
 1. ~~Rédiger cette fiche.~~ (fait, v0.1)
-2. Construire uniquement le chemin principal, en cubes.
-3. Chronométrer le niveau sans ennemis.
-4. Ajouter les obstacles environnementaux (tuiles, enseignes, fils, rafales, éclairs).
-5. Ajouter Onibi et Bakeneko en graybox.
-6. Placer les 3 checkpoints et construire la route experte.
-7. Tester avec cinq joueurs.
-8. Corriger rythme et caméra.
-9. Habillage artistique — seulement à ce stade.
+2. ~~Construire uniquement le chemin principal, en cubes.~~ (fait, 2026-08-31)
+3. ~~Chronométrer le niveau sans ennemis.~~ (fait, 2026-08-31 — six vrais bugs de traversée trouvés et corrigés)
+4. ~~Ajouter les obstacles environnementaux (tuiles, enseignes, fils, rafales, éclairs).~~ (fait, 2026-08-31)
+5. ~~Ajouter Onibi et Bakeneko en graybox.~~ (fait, 2026-08-31)
+6. ~~Placer les 3 checkpoints et construire la route experte.~~ (fait, 2026-08-31 — route experte étendue à toute la longueur du niveau le 2026-09-02 ; Pression et rivets de cuivre construits le même jour)
+7. **Tester avec cinq joueurs.** En cours — lancé cette semaine (à partir du 2026-09-03), retours pas encore reçus.
+8. Corriger rythme et caméra. **Partiellement anticipé** : le bug caméra remonté par le propre playtest de l'utilisateur (perte de vue des plateformes en saut) a déjà été corrigé le 2026-09-02, et une extension de rythme en 7 segments a déjà été faite en réponse au même retour (temps de traversée bot ~21.8s→~47.8s) — voir État de production ci-dessous. Reste à confirmer/ajuster avec les vraies données de l'étape 7.
+9. Habillage artistique — seulement à ce stade. **Note** : une passe d'habillage anticipée a déjà eu lieu le 2026-08-31 (décision délibérée de l'utilisateur de réordonner, pas une violation du process — voir [[kyokai-level02-toits-pluie]]).
+
+## État de production (ajouté 2026-09-03)
+
+Ce niveau est le seul de toute la campagne (20 fiches) à avoir dépassé la pré-production — construit en premier comme vertical slice, conformément à la recommandation explicite du GDD (section 17.5 : prouver un niveau de 10 minutes avant d'engager le reste). Résumé, détails complets dans la mémoire projet [[kyokai-level02-toits-pluie]] :
+
+- **Graybox complet** (2026-08-31) : chemin principal, cinq obstacles environnementaux, deux ennemis, trois checkpoints, route experte étendue à toute la longueur du niveau, Pression fonctionnelle avec rivets de cuivre, trois sceaux d'harmonie et la mémoire gravée — tous les éléments du contrat de contenu (règle 8.2) sont construits et vérifiés par bot.
+- **Vrai playtest utilisateur (2026-09-02)** a révélé deux problèmes réels : (1) un bug caméra (perte de vue des plateformes en saut, corrigé le jour même) et (2) une durée réelle inférieure à 2 minutes contre la cible de 8-12 minutes de la règle 18.3 — confirmant par la mesure ce que les rappels de rythme théoriques (règle 8.5) laissaient présager.
+- **Extension de rythme en 7 segments** (2026-09-02, tous commits séparément vérifiés par bot) a suivi ce retour : chaque segment du niveau a été physiquement allongé (jamais juste retardé), avec ajout de contenu supplémentaire (ennemis, obstacles) dans l'espace gagné, sans jamais toucher aux systèmes les plus fragiles (puits de saut mural, tunnel de glissade, chute en dash) qui restent intacts depuis leur construction initiale. Temps de traversée bot (un parcours en ligne droite sans lecture ni hésitation, **jamais une mesure de la durée réelle de jeu**) : passé de ~21.8s à ~47.8s, soit environ ×2.2.
+- **Ce que l'extension NE valide PAS** : le temps de traversée bot ne confirme en rien que la médiane réelle de première réussite (règle 18.3) atteint maintenant 8-12 minutes — seul un vrai test à cinq joueurs (étape 7) peut le confirmer. C'est explicitement pourquoi l'étape 8 (corriger rythme et caméra) reste listée comme non complétée malgré tout ce travail : le rythme n'est corrigé qu'une fois validé par de vraies données, pas par une intuition de bot.
+- **Prochaine étape** : dépouillement des cinq sessions de playtest dès leur réception, contre les neuf critères de la section Validation ci-dessus.
 
 ## Notes ouvertes
 
-- Aucun élément de cette fiche ne modifie les paramètres du contrôleur figés dans `Controller_v1.0` — si le chronométrage à l'étape 3 révèle un problème réel, il faudra le documenter avant toute retouche.
-- Les enseignes-plateformes-rebonds réutiliseront probablement `ABouncePad` tel quel plutôt qu'une nouvelle classe, sous réserve de vérification une fois la géométrie posée.
-- Le système de checkpoint (`AFlowCheckpoint` dans le GDD) n'existe pas encore en code ; nécessaire dès l'étape 6.
+- Aucun élément de cette fiche ne modifie les paramètres du contrôleur figés dans `Controller_v1.0` — confirmé tenu tout au long de la construction réelle, y compris pendant l'extension de rythme.
+- Les enseignes-plateformes-rebonds réutilisent bien `ABouncePad` tel quel, confirmé à la construction.
+- Le système de checkpoint est construit sous les noms `ACheckpoint`/`AKyokaiGameMode` plutôt que `AFlowCheckpoint` (nom du GDD) — écart de nommage mineur, sans conséquence fonctionnelle, déjà noté dans la mémoire du projet.
+- **Le playtest à cinq joueurs (étape 7) est la seule chose qui manque encore pour clore ce niveau** — tout le reste de cette fiche (Plan, Opposition, Art, Audio, Technique, Accessibilité) reste la référence de conception valide ; seul l'« Ordre de réalisation » et cette section « État de production » ont changé depuis la v0.1.
