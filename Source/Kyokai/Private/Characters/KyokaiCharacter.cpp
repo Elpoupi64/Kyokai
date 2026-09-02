@@ -51,7 +51,7 @@ AKyokaiCharacter::AKyokaiCharacter(const FObjectInitializer& ObjectInitializer)
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 1200.0f;
 	CameraBoom->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
-	CameraBoom->TargetOffset = FVector(0.0f, 0.0f, 140.0f);
+	CameraBoom->TargetOffset = FVector(0.0f, 0.0f, CameraGroundedVerticalOffset);
 	CameraBoom->bDoCollisionTest = false;
 	CameraBoom->bUsePawnControlRotation = false;
 	CameraBoom->bInheritPitch = false;
@@ -489,6 +489,18 @@ void AKyokaiCharacter::UpdateCameraLookAhead(const float DeltaSeconds)
 	const float DesiredOffset = FacingDirection * CameraLookAheadDistance;
 	FVector TargetOffset = CameraBoom->TargetOffset;
 	TargetOffset.X = FMath::FInterpTo(TargetOffset.X, DesiredOffset, DeltaSeconds, CameraLookAheadSpeed);
+
+	// Drop the camera's vertical focus while airborne so platforms below
+	// stay in frame during a jump instead of scrolling off the bottom -
+	// see CameraAirborneVerticalDrop's own comment for why this isn't
+	// just polish.
+	const UKyokaiMovementComponent* Movement = GetKyokaiMovement();
+	const bool bAirborne = Movement && !Movement->IsMovingOnGround();
+	const float DesiredOffsetZ = bAirborne
+		? CameraGroundedVerticalOffset - CameraAirborneVerticalDrop
+		: CameraGroundedVerticalOffset;
+	TargetOffset.Z = FMath::FInterpTo(TargetOffset.Z, DesiredOffsetZ, DeltaSeconds, CameraVerticalInterpSpeed);
+
 	CameraBoom->TargetOffset = TargetOffset;
 }
 

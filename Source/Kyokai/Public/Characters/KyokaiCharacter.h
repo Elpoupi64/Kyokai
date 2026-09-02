@@ -215,6 +215,26 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Camera", meta = (ClampMin = "0.0"))
 	float CameraLookAheadSpeed = 7.0f;
 
+	/** Base vertical framing offset while grounded - shifts the camera's focus point above the character for run-time headroom (spotting an upcoming jump). */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Camera", meta = (ClampMin = "0.0"))
+	float CameraGroundedVerticalOffset = 140.0f;
+
+	/**
+	 * How much lower the camera's vertical focus drops while airborne, on
+	 * top of CameraGroundedVerticalOffset - the same fixed +140 offset
+	 * used while grounded means every jump pushes platforms below even
+	 * further out of frame, confirmed as a real playability problem (not
+	 * just polish): the GDD's own acceptance criteria include "no death
+	 * caused by a hazard that was off-camera", and this level uses jump
+	 * arcs constantly. Net vertical offset while airborne is
+	 * CameraGroundedVerticalOffset - CameraAirborneVerticalDrop.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Camera", meta = (ClampMin = "0.0"))
+	float CameraAirborneVerticalDrop = 260.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Camera", meta = (ClampMin = "0.0"))
+	float CameraVerticalInterpSpeed = 4.0f;
+
 	/**
 	 * Distance beyond the capsule radius the side wall-check traces reach -
 	 * how close a wall has to be, while airborne, to count as "touching" it
