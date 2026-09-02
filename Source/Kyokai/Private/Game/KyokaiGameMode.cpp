@@ -1463,9 +1463,35 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"third_leg_landed\"}"));
 	}
 
-	// Success: landed on Expert_Seg6_Bridge (top=1710, so Z>=1600 rules
-	// out still being on Expert_Seg5_Upper at capsule-center ~1528).
-	if (Loc.X >= 14400.f && Loc.Z >= 1600.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	// Fourth-leg checkpoint (not the test's own success condition anymore):
+	// landed on Expert_Seg6_Bridge (top=1710, so Z>=1600 rules out still
+	// being on Expert_Seg5_Upper at capsule-center ~1528).
+	static bool bLoggedFourthLegLanding = false;
+	if (!bLoggedFourthLegLanding && Loc.X >= 14400.f && Loc.Z >= 1600.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	{
+		bLoggedFourthLegLanding = true;
+		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"fourth_leg_landed\"}"));
+	}
+
+	// Fifth leg (Segment 7 extension): Expert_Seg7_Bridge is contiguous
+	// with Expert_Seg6_Bridge (both top=1710, touching at x=15400) - no
+	// jump needed, the character just keeps running across both. This
+	// single long bridge skips the tunnel's low ceiling (Ceiling_Seg7_Tunnel
+	// top=1370, well clear) and the dash-drop finale's own footprint
+	// entirely (same "go over the whole hazard span" pattern that worked
+	// for the wall-jump shaft and the lightning column), ending at
+	// x=17550 so the natural fall off its edge lands directly on
+	// Platform_Finish_L02 (~x=18255, within its 18000-18500 span) - which
+	// happens to pass through FinishLine_L02's own trigger height
+	// (998.15) during the final part of the descent.
+
+	// Success: landed on Platform_Finish_L02 (top=900, so Z>=850 rules out
+	// still being mid-fall; X>=18000 is the platform's own near edge).
+	// NotifyLevelCompleted() itself isn't checked here - it only logs
+	// when a real playtest is active (bPlaytestActive), which automated
+	// test runs like this one deliberately don't set (see
+	// IsAutomatedTestRun()), so it would never fire during this test.
+	if (Loc.X >= 18000.f && Loc.Z >= 850.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
@@ -1473,7 +1499,7 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		return;
 	}
 
-	if (Elapsed > 35.f)
+	if (Elapsed > 45.f)
 	{
 		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
 		FinishExpertRouteTest(TEXT("timeout - likely stuck or fell through"));
