@@ -1039,7 +1039,7 @@ void AKyokaiGameMode::TickLevel02Timing()
 		-7030.f, -6430.f, -5630.f, -2530.f, -1930.f, -1130.f,
 		1970.f, 2570.f, 3370.f, 5200.f, 6100.f, 6150.f,
 		8050.f, 8950.f, 10850.f,
-		13550.f, 15400.f, 17550.f, 18670.f, 22810.f, 22900.f, 23770.f
+		13550.f, 15400.f, 19050.f, 20170.f, 24310.f, 24400.f, 25270.f
 	};
 	static const int32 TriggerType[] = {
 		0, 0, 0, 0, 0, 0,
@@ -1148,7 +1148,7 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// resume holding it once past the shaft (or once high enough to have
 	// cleared it) so normal running resumes afterward.
 	// Shifted +4700 by the Segment 2 pacing extension (originally 12600-13060).
-	const bool bInShaft = Loc.X >= 18800.f && Loc.X <= 19260.f && Loc.Z < 1150.f;
+	const bool bInShaft = Loc.X >= 20300.f && Loc.X <= 20760.f && Loc.Z < 1150.f;
 	if (bInShaft && bLevel02TimingDHeld)
 	{
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
@@ -1165,7 +1165,7 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// fires correctly even if the character is still airborne (wall-jump
 	// shaft overshoot) when it first crosses this X.
 	// Shifted +4700 by the Segment 2 pacing extension (originally 15800-16150).
-	if (!bLevel02TimingSliding && Loc.X >= 22000.f && Loc.X <= 22350.f
+	if (!bLevel02TimingSliding && Loc.X >= 23500.f && Loc.X <= 23850.f
 		&& Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::LeftControl, IE_Pressed, 1.0f));
@@ -1181,7 +1181,7 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// shaft's variance. Stopping the spam earlier reduces how many bounces
 	// can accumulate within the shaft's brief ~0.3-0.5s crossing window.
 	// Shifted +4700 by the Segment 2 pacing extension (originally 12600-12860).
-	if (Loc.X >= 18800.f && Loc.X <= 19060.f && Loc.Z < 1050.f && Elapsed - Level02TimingLastShaftPress >= 0.25f)
+	if (Loc.X >= 20300.f && Loc.X <= 20560.f && Loc.Z < 1050.f && Elapsed - Level02TimingLastShaftPress >= 0.25f)
 	{
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
@@ -1211,7 +1211,7 @@ void AKyokaiGameMode::TickLevel02Timing()
 	// Only 4250 (Segment 1's own end) is unchanged - everything after it
 	// shifted +4700 by the Segment 2 pacing extension (original values:
 	// 6850, 10450, 12200, 14060, 15500, 18000).
-	static const float SegmentEndX[] = { 4250.f, 11550.f, 16650.f, 18400.f, 20260.f, 21700.f, 24200.f };
+	static const float SegmentEndX[] = { 4250.f, 11550.f, 16650.f, 19900.f, 21760.f, 23200.f, 25700.f };
 	static const TCHAR* SegmentNames[] = {
 		TEXT("Seg1_Accroche"), TEXT("Seg2_Enseignement"), TEXT("Seg3_Enseignes"),
 		TEXT("Seg4_Onibi"), TEXT("Seg5_Gouttieres"), TEXT("Seg6_Paratonnerres"), TEXT("Seg7_Finish")
@@ -1350,6 +1350,7 @@ void AKyokaiGameMode::PollForPawnThenRunExpertRouteTest()
 	ExpertRouteTestStartTime = GetWorld()->GetTimeSeconds();
 	bExpertRouteJumpFired = false;
 	bExpertRouteJumpFired2 = false;
+	bExpertRouteJumpFired2b = false;
 	bExpertRouteJumpFired3 = false;
 	bExpertRouteJumpFired4 = false;
 	bExpertRouteDHeld = true;
@@ -1397,13 +1398,31 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"jump_fired_2\"}"));
 	}
 
+	// Segment 4 pacing extension: Expert_Seg4_Upper's own edge (17650)
+	// never moved, but Roof_Seg4_Arena's right edge did (widened from
+	// 17650 to 19150) - before this, falling off Expert_Seg4_Upper's edge
+	// (763 down to 350, ~850cm/s horizontal) easily overshot the old
+	// short arena, landing well past it with no extra jump needed. Now
+	// the much-wider arena floor catches that same fall well short of its
+	// own new edge, so the character runs the rest of the arena on foot
+	// and needs its own jump to clear the 250cm gap into Roof_Seg4_End -
+	// same 100cm-lead convention as the main path's own trigger for this
+	// exact gap (19050).
+	if (!bExpertRouteJumpFired2b && Loc.X >= 19050.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	{
+		bExpertRouteJumpFired2b = true;
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
+		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
+		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"jump_fired_2b\"}"));
+	}
+
 	// Third leg (Segment 5 extension): the expert route has no geometry of
 	// its own through the wall-jump shaft's footprint (12550-12810) - the
 	// player crosses it on the main path like anyone else. Same D-release/
 	// periodic-jump-tap handling as Level02Timing's own proven shaft logic
 	// (see that function's comment for why - PerformWallJump() sets
 	// Velocity.X outright, and holding D the whole time fights that).
-	const bool bInShaft = Loc.X >= 18800.f && Loc.X <= 19260.f && Loc.Z < 1150.f;
+	const bool bInShaft = Loc.X >= 20300.f && Loc.X <= 20760.f && Loc.Z < 1150.f;
 	if (bInShaft && bExpertRouteDHeld)
 	{
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));
@@ -1414,7 +1433,7 @@ void AKyokaiGameMode::TickExpertRouteTest()
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Pressed, 1.0f));
 		bExpertRouteDHeld = true;
 	}
-	if (Loc.X >= 18800.f && Loc.X <= 19060.f && Loc.Z < 1050.f && Elapsed - ExpertRouteLastShaftPress >= 0.25f)
+	if (Loc.X >= 20300.f && Loc.X <= 20560.f && Loc.Z < 1050.f && Elapsed - ExpertRouteLastShaftPress >= 0.25f)
 	{
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Released, 0.0f));
@@ -1425,7 +1444,7 @@ void AKyokaiGameMode::TickExpertRouteTest()
 	// stretch (Roof_Seg5_ShaftExit/Chase, both top=1150, no jumps needed
 	// on the main path here) - reaching Expert_Seg5_Upper above the
 	// Bakeneko chase zone.
-	if (!bExpertRouteJumpFired3 && Loc.X >= 19300.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	if (!bExpertRouteJumpFired3 && Loc.X >= 20800.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		bExpertRouteJumpFired3 = true;
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
@@ -1443,7 +1462,7 @@ void AKyokaiGameMode::TickExpertRouteTest()
 	// Expert_Seg5_Upper's own surface, to reach Expert_Seg6_Bridge, which
 	// itself spans clear across the whole danger column at a height
 	// (top=1710) safely above the strikes' own reach (1450).
-	if (!bExpertRouteJumpFired4 && Loc.X >= 20150.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	if (!bExpertRouteJumpFired4 && Loc.X >= 21650.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		bExpertRouteJumpFired4 = true;
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar, IE_Pressed, 1.0f));
@@ -1495,7 +1514,7 @@ void AKyokaiGameMode::TickExpertRouteTest()
 	// landed on Expert_Seg5_Upper (top=1430, so Z>=1350 rules out still
 	// being on the flat post-shaft stretch at capsule-center ~1248).
 	static bool bLoggedThirdLegLanding = false;
-	if (!bLoggedThirdLegLanding && Loc.X >= 19600.f && Loc.Z >= 1350.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	if (!bLoggedThirdLegLanding && Loc.X >= 21100.f && Loc.Z >= 1350.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		bLoggedThirdLegLanding = true;
 		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"third_leg_landed\"}"));
@@ -1505,7 +1524,7 @@ void AKyokaiGameMode::TickExpertRouteTest()
 	// landed on Expert_Seg6_Bridge (top=1710, so Z>=1600 rules out still
 	// being on Expert_Seg5_Upper at capsule-center ~1528).
 	static bool bLoggedFourthLegLanding = false;
-	if (!bLoggedFourthLegLanding && Loc.X >= 20600.f && Loc.Z >= 1600.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	if (!bLoggedFourthLegLanding && Loc.X >= 22100.f && Loc.Z >= 1600.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		bLoggedFourthLegLanding = true;
 		ExpertRouteTestEntries.Add(TEXT("{\"step\": \"fourth_leg_landed\"}"));
@@ -1529,7 +1548,7 @@ void AKyokaiGameMode::TickExpertRouteTest()
 	// when a real playtest is active (bPlaytestActive), which automated
 	// test runs like this one deliberately don't set (see
 	// IsAutomatedTestRun()), so it would never fire during this test.
-	if (Loc.X >= 24200.f && Loc.Z >= 850.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
+	if (Loc.X >= 25700.f && Loc.Z >= 850.f && Character->GetKyokaiMovement() && Character->GetKyokaiMovement()->IsMovingOnGround())
 	{
 		GetWorldTimerManager().ClearTimer(ExpertRouteTestTickHandle);
 		PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::D, IE_Released, 0.0f));

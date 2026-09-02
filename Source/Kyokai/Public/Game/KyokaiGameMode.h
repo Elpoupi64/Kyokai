@@ -227,6 +227,7 @@ private:
 	TWeakObjectPtr<APlayerController> ExpertRouteTestController;
 	TArray<FString> ExpertRouteTestEntries;
 	bool bExpertRouteJumpFired2 = false;
+	bool bExpertRouteJumpFired2b = false;
 	bool bExpertRouteJumpFired3 = false;
 	bool bExpertRouteJumpFired4 = false;
 	bool bExpertRouteDHeld = true;
