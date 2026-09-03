@@ -11,8 +11,8 @@ Cette étape nécessite de vrais testeurs humains — ni moi ni aucun outil auto
 | Champ | Valeur |
 | --- | --- |
 | Niveau testé | 02 — Les Toits sous la pluie |
-| Build | tag/commit à préciser au moment du test (voir `git log` sur `master`) |
-| Nombre de testeurs visé | 5, chacun en premier contact avec le niveau |
+| Build | `8c0a680` (2026-09-03) ou plus récent — voir `git log` sur `main` pour confirmer au moment du test |
+| Nombre de testeurs visé | 5, chacun en premier contact avec le niveau. **2 sessions déjà reçues (2026-09-03), confirmées réelles par l'utilisateur, mais sur un build antérieur à `8c0a680`** — voir « Mise à jour 2026-09-03 » ci-dessous avant le dépouillement final : les 3 sessions restantes doivent être lancées sur `8c0a680` ou plus récent pour rester comparables entre elles. |
 | Durée par session | ~15-20 minutes (jeu + debrief court) |
 
 ## Ce que ce test doit produire
@@ -118,3 +118,12 @@ Les deux critères purement qualitatifs (compréhension sans indication, aucune 
 - **`expert_route_used` détecte la présence sur la plateforme, pas la réussite de la traversée** — un testeur qui y monte puis tombe immédiatement déclenche quand même l'événement. C'est voulu (mesurer si les joueurs la *découvrent* est déjà une donnée utile), mais ça ne remplace pas l'observation manuelle pour juger si la traversée s'est faite proprement.
 - **La cause `"unknown"`** peut apparaître si `RespawnAtCheckpoint()` est appelée sans cause précisée (ne devrait pas arriver dans le jeu actuel — les quatre points d'appel existants passent tous une cause) ; si elle apparaît dans les données, c'est le signe d'un nouveau point d'appel ajouté sans étiquette, à corriger dans le code plutôt qu'à ignorer dans le dépouillement.
 - **Aucune donnée n'est capturée si le testeur joue avec un des flags `-Kyokai*Test`** — c'est intentionnel (voir Préparation), mais à vérifier si un fichier de session manque après un test.
+
+## Mise à jour 2026-09-03 : à savoir avant le dépouillement final des 5 sessions
+
+Beaucoup a changé sur le niveau entre les 2 premières sessions réelles (reçues le 2026-09-03, sur un build antérieur à `8c0a680`) et le build actuel — les 5 sessions ne sont donc **pas directement comparables telles quelles**. À traiter au moment du dépouillement, pas avant :
+
+- **Checkpoint fantôme non documenté** : les 2 sessions déjà reçues montrent un `checkpoint_activated` supplémentaire à x≈-4557, ~8s après le début, en plus des 3 attendus (11900/20000/26300) — jamais expliqué, probablement proche du spawn. Ne pas compter ce 4ème événement contre le critère "les trois checkpoints fonctionnent" : c'est un doublon apparent, pas un vrai 4ème point.
+- **Zone jouable non clôturée après l'arrivée** : les 2 mêmes sessions montrent une mort par chute *après* `level_completed` (x≈31500-32400, au-delà de la ligne d'arrivée). Ne pas compter cette mort dans le critère "aucun obstacle > 20% des échecs" — elle survient après la fin du niveau, hors parcours.
+- **Nouveau contenu ajouté depuis ces 2 sessions** (portes temporisées sur les Segments 2/4/5/6, correctifs du puits de saut mural, repositionnement d'`Expert_Seg5_Upper`) : les 3 sessions restantes vont rencontrer un niveau sensiblement différent, avec de vraies attentes forcées aux portes qui n'existaient pas encore lors des 2 premières sessions. **La médiane des 5 `total_time_s` ne doit pas être calculée en mélangeant les deux builds sans le noter explicitement** — présenter les 2 anciennes et les 3 nouvelles séparément en plus de la médiane globale, pour que l'effet réel des ajouts de cette semaine reste lisible.
+- Ces deux bugs (checkpoint fantôme, zone non clôturée) restent non corrigés à ce jour — ne pas les corriger avant de lancer les 3 sessions restantes n'était pas jugé bloquant, mais ils referont surface dans les nouvelles données ; les traiter de la même façon que ci-dessus.
