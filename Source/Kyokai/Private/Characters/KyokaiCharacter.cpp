@@ -20,6 +20,12 @@
 #include "InputMappingContext.h"
 #include "TimerManager.h"
 
+// Actor tag an actor must carry for UpdateWallDetection() to treat it as a
+// valid wall-jump surface - see that function's own comment for why this
+// exists. Applied via level-edit script to Wall_Seg5_Left/Right (Niveau 02)
+// and Wall_Zone6_Left/Right (controller gym).
+static const FName WallJumpSurfaceTag(TEXT("WallJumpSurface"));
+
 AKyokaiCharacter::AKyokaiCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UKyokaiMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
@@ -149,6 +155,7 @@ void AKyokaiCharacter::Tick(const float DeltaSeconds)
 		LastGroundedTime = GetWorld()->GetTimeSeconds();
 		bAirDashAvailable = true;
 		LastSafeGroundLocation = GetActorLocation();
+		WallJumpChainStartZ = GetActorLocation().Z;
 	}
 	else if (bIsSliding)
 	{
@@ -341,6 +348,23 @@ void AKyokaiCharacter::TryConsumeJumpBuffer()
 		return;
 	}
 
+	// Height-capped per chain here too, not just inside PerformWallJump() -
+	// see MaxWallJumpChainClimb's own comment for the full diagnosis. Real
+	// case this closes: a jump pressed (and buffered) while still falling
+	// from a tall wall-jump-chain climb can have JumpBufferTime still open
+	// the instant Landed() consumes it - a completely ordinary Jump(), not
+	// a wall-jump, firing from an already-elevated landing spot and adding
+	// yet more height on top (observed reaching Expert_Seg5_Upper's own
+	// entry platform this way, then continuing onto Expert_Seg6_Bridge -
+	// nothing to do with the shaft's own climb by that point). Refusing
+	// here just lets the buffered input lapse rather than silently
+	// re-queuing it.
+	if (GetActorLocation().Z - WallJumpChainStartZ >= MaxWallJumpChainClimb)
+	{
+		bJumpBuffered = false;
+		return;
+	}
+
 	if (CanJump())
 	{
 		Jump();
@@ -441,11 +465,21 @@ void AKyokaiCharacter::UpdateWallDetection()
 	const float TraceLength = GetCapsuleComponent()->GetScaledCapsuleRadius() + WallCheckDistance;
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(WallJumpCheck), false, this);
 
+	// Tag-gated (2026-09-03, shaft variance fix - see kyokai-level02-toits-
+	// pluie memory): an untagged ECC_Visibility trace registers ANY nearby
+	// collidable actor as a wall-jump wall - an unrelated platform's edge,
+	// even an enemy - not just the actors actually designed for this
+	// mechanic. Diagnosed via a temporary log showing PerformWallJump()
+	// firing against Expert_Seg5_Upper's edge and near an Onibi, neither of
+	// which should ever count. Only actors explicitly tagged
+	// WallJumpSurfaceTag (Wall_Seg5_Left/Right in Niveau 02,
+	// Wall_Zone6_Left/Right in the controller gym) are valid now.
 	for (const float Direction : {-1.0f, 1.0f})
 	{
 		FHitResult Hit;
 		const FVector End = Origin + FVector(Direction * TraceLength, 0.0f, 0.0f);
-		if (GetWorld()->LineTraceSingleByChannel(Hit, Origin, End, ECC_Visibility, QueryParams))
+		if (GetWorld()->LineTraceSingleByChannel(Hit, Origin, End, ECC_Visibility, QueryParams)
+			&& Hit.GetActor() && Hit.GetActor()->ActorHasTag(WallJumpSurfaceTag))
 		{
 			bIsTouchingWall = true;
 			WallPushDirection = -Direction; // launch away from whichever side the wall is on
@@ -459,6 +493,17 @@ void AKyokaiCharacter::PerformWallJump()
 	UKyokaiMovementComponent* Movement = GetKyokaiMovement();
 	if (!Movement || FMath::IsNearlyZero(WallPushDirection))
 	{
+		return;
+	}
+
+	// Height-capped per chain, not per individual wall-jump - see
+	// MaxWallJumpChainClimb's own comment for the full diagnosis. Still
+	// detaches from whatever surface triggered this (below) so a capped
+	// attempt doesn't leave the character stuck re-querying the same wall.
+	if (GetActorLocation().Z - WallJumpChainStartZ >= MaxWallJumpChainClimb)
+	{
+		bIsTouchingWall = false;
+		WallPushDirection = 0.0f;
 		return;
 	}
 

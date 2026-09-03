@@ -249,6 +249,36 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Movement|WallJump", meta = (ClampMin = "0.0"))
 	float WallJumpHorizontalVelocity = 800.0f;
 
+	/**
+	 * Hard cap on total vertical gain (from the last grounded height) a
+	 * single continuous airborne wall-jump chain can produce, regardless of
+	 * how many individual wall-jumps fire. Added 2026-09-03 (Level 02 shaft
+	 * variance investigation - see kyokai-level02-toits-pluie memory):
+	 * UpdateWallDetection()'s trace isn't restricted to any specific "this
+	 * is a wall-jump wall" tag - it registers ANY nearby collidable surface
+	 * (an unrelated platform's edge, even an enemy) as a valid wall, so a
+	 * character that happens to brush past one after a legitimate climb can
+	 * pick up an extra, unbounded 1100cm/s vertical kick. Diagnosed via a
+	 * temporary log: one traversal fired PerformWallJump() 7 times - 5
+	 * inside the intended wall-jump shaft (a legitimate ~630cm climb,
+	 * Z=480->1107) plus 2 unrelated ones elsewhere (one near an enemy in
+	 * the Segment 4 arena, one 2.25s after leaving the shaft against
+	 * Expert_Seg5_Upper's edge) neither of which should count as "the
+	 * shaft's climb" at all. 900cm covers the shaft's own real climb need
+	 * (~800cm, entry ~Z448 to exit ~Z1248) with margin, while firmly
+	 * blocking runaway extra bounces from compounding past it. Lowered from
+	 * an initial 900 to 760 after finding this cap alone (applied only to
+	 * PerformWallJump()) didn't stop every case: a jump buffered while
+	 * still falling from the shaft's own climb could fire an ordinary
+	 * Jump() the instant it landed, adding still more height - see
+	 * TryConsumeJumpBuffer(), which now enforces this same cap before
+	 * either branch. 760 comfortably covers the shaft's observed real climb
+	 * (~672 measured directly) while sitting below the ~798 height that
+	 * extra landing-jump was observed firing from.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kyokai|Movement|WallJump", meta = (ClampMin = "0.0"))
+	float MaxWallJumpChainClimb = 760.0f;
+
 private:
 	void MoveEnhanced(const FInputActionValue& Value);
 	void MoveLegacy(float Value);
@@ -269,6 +299,9 @@ private:
 	float LastGroundedTime = -1000.0f;
 	float LastJumpPressedTime = -1000.0f;
 	float LastDashTime = -1000.0f;
+	// Locked to the current Z whenever grounded (Tick()); read by
+	// PerformWallJump() to enforce MaxWallJumpChainClimb.
+	float WallJumpChainStartZ = 0.0f;
 	float MoveInput = 0.0f;
 	float FacingDirection = 1.0f;
 	float WallPushDirection = 0.0f;
