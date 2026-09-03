@@ -1104,6 +1104,25 @@ void AKyokaiGameMode::TickLevel02Timing()
 	{
 		bool bShouldDodge = false;
 
+		// Distance-gated (2026-09-03 fix - see kyokai-level02-toits-pluie
+		// memory for the full diagnosis): GetAllActorsOfClass() with no
+		// distance check reacted to ANY Onibi/Bakeneko telegraphing ANYWHERE
+		// in the whole level, not just a nearby one. With the Segment 5
+		// chase's three closely-spaced Bakeneko (x=21200/21560/22500, only
+		// 360/940 units apart), this let a single approach chain 3-4 dodge
+		// jumps in ~1.6s (each one's telegraph firing off the bot's own
+		// proximity-based state machine before the player is anywhere near
+		// it) - stacking height until the bot sailed onto Expert_Seg6_Bridge
+		// instead of engaging the gauntlet one encounter at a time.
+		// DodgeReactionDistance=700 is comfortably above every individual
+		// enemy's own established engage/pounce radius (Onibi_Seg4 instances
+		// use 280-900; Bakeneko closes to its own pounce distance before
+		// telegraphing at all) so a genuinely adjacent threat still reacts
+		// correctly, while a second/third instance still 1000+ units out
+		// (not yet actually dangerous) no longer does.
+		constexpr float DodgeReactionDistance = 700.0f;
+		constexpr float DodgeReactionDistanceSq = DodgeReactionDistance * DodgeReactionDistance;
+
 		// GetActorOfClass() only returns ONE actor - fine for a single
 		// Onibi, but the Segment 4 gauntlet (Onibi_Seg4/_B/_C) needs every
 		// instance checked, or the bot would only ever react to whichever
@@ -1114,7 +1133,11 @@ void AKyokaiGameMode::TickLevel02Timing()
 		{
 			if (const AOnibi* Onibi = Cast<AOnibi>(Actor))
 			{
-				bShouldDodge |= Onibi->bIsTelegraphingCharge;
+				if (Onibi->bIsTelegraphingCharge
+					&& FVector::DistSquared(Onibi->GetActorLocation(), Loc) <= DodgeReactionDistanceSq)
+				{
+					bShouldDodge = true;
+				}
 			}
 		}
 
@@ -1124,7 +1147,11 @@ void AKyokaiGameMode::TickLevel02Timing()
 		{
 			if (const ABakeneko* Bakeneko = Cast<ABakeneko>(Actor))
 			{
-				bShouldDodge |= Bakeneko->bIsTelegraphingPounce;
+				if (Bakeneko->bIsTelegraphingPounce
+					&& FVector::DistSquared(Bakeneko->GetActorLocation(), Loc) <= DodgeReactionDistanceSq)
+				{
+					bShouldDodge = true;
+				}
 			}
 		}
 
